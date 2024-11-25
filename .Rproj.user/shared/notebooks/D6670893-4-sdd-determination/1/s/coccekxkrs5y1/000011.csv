@@ -1,0 +1,7 @@
+"0","trees_distances %>%"
+"0","  summarize(median_d = median(distance),"
+"0","            mean_d = mean(distance),"
+"0","            sd_d = sd(distance),"
+"0","            max_d = max(distance),"
+"0","            min_d = min(distance),"
+"0","            n = n())"

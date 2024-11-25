@@ -1,0 +1,77 @@
+Software Version            : FRANz 1.2.3
+Dataset                     : cloneless
+Time of Data Analysis       : Fri Nov  1 07:48:18 2024
+
+
+*** Simulation Settings ***
+
+Seed                        : 1730472497
+Simulation Steps            : 50000
+Selfing Rate                : 0.191
+Rate of Typing Error
+  Locus 1                   : 0.010
+  Locus 2                   : 0.010
+  Locus 3                   : 0.010
+  Locus 4                   : 0.010
+  Locus 5                   : 0.010
+  Locus 6                   : 0.010
+  Locus 7                   : 0.010
+  Locus 8                   : 0.010
+  Locus 9                   : 0.010
+  Locus 10                  : 0.010
+Proportion Typed
+  Locus 1                   : 0.937
+  Locus 2                   : 0.878
+  Locus 3                   : 0.904
+  Locus 4                   : 0.953
+  Locus 5                   : 0.948
+  Locus 6                   : 0.966
+  Locus 7                   : 0.891
+  Locus 8                   : 0.915
+  Locus 9                   : 0.918
+  Locus 10                  : 0.864
+
+
+*** Mismatching Loci ***
+
+Max. mismatching loci Dyad  : 2
+Max. mismatching loci Triple: 3
+
+Histogram Mismatches Parent-Offspring pairs:
+0                           : 93236
+1                           : 6548
+2                           : 213
+3                           : 3
+
+Histogram Mismatches Unrelated pairs:
+0                           : 7
+1                           : 144
+2                           : 1059
+3                           : 4583
+4                           : 12104
+5                           : 21340
+6                           : 25821
+7                           : 20747
+8                           : 10648
+9                           : 3151
+10                          : 396
+
+Histogram Mismatches Offspring-Mother-Father triples:
+0                           : 87543
+1                           : 11717
+2                           : 720
+3                           : 20
+
+Histogram Mismatches Offspring-Mother-Unrelated triples:
+1                           : 14
+2                           : 179
+3                           : 1112
+4                           : 4431
+5                           : 11998
+6                           : 22001
+7                           : 27427
+8                           : 21381
+9                           : 9573
+10                          : 1884
+
+

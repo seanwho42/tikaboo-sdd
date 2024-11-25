@@ -1,0 +1,131 @@
+# 2 - franz formatting
+## Description
+This code formats the genotype data from '1-initial-data.Rmd' in order to create a file which can be read by FRANz pedigree.
+
+## setup
+```{r}
+library(tidyverse)
+library(ggmap)
+library(janitor)
+```
+
+## Reformatting labels + additional information
+We need to provide some more information for FRANz in order for the software to process our data. This includes making our tree IDs all 10 characters long.
+
+read in the data and added some more information required for FRANz runs to each of the runs.
+[TODO: explain each column/?]
+```{r}
+franz_genotypes <- genotypes %>%
+  mutate(Tree = paste(str_pad(Tree, width=10, side='left'), " 1 ? ? ?", sep = ""))
+  # str_pad adds spaces on the left to meet 10 length requirement for input file
+  # then adding the columns necessary (most of which aren't relevant)
+```
+
+## Merging alleles
+The next step for formatting is to combine alleles for each loci, so that each pair of alleles is saved in one column, separated by a slash.
+```{r}
+
+franz_genotypes_slashes <- franz_genotypes %>%
+  mutate(
+    yb01 = paste(`yb01 Allele#1`, "/", `yb01 Allele#2`, sep=""),
+    yb15 = paste(`yb15 Allele#1`, "/", `yb15 Allele#2`, sep=""),
+    yb21 = paste(`yb21 Allele#1`, "/", `yb21 Allele#2`, sep=""),
+    yb04 = paste(`yb04 Allele#1`, "/", `yb04 Allele#2`, sep=""),
+    yb06 = paste(`yb06 Allele#1`, "/", `yb06 Allele#2`, sep=""),
+    yb12 = paste(`yb12 Allele#1`, "/", `yb12 Allele#2`, sep=""),
+    yb13 = paste(`yb13 Allele#1`, "/", `yb13 Allele#2`, sep=""),
+    fil36 = paste(`fil36 Allele#1`, "/", `fil36 Allele#2`, sep=""),
+    yb08 = paste(`yb08 Allele#1`, "/", `yb08 Allele#2`, sep=""),
+    yb22 = paste(`yb22 Allele#1`, "/", `yb22 Allele#2`, sep="")
+    )
+names(franz_genotypes_slashes)
+
+# selecting the columns we actually need
+franz_genotypes_slashes <- franz_genotypes_slashes %>% select("Tree","yb01","yb15","yb21","yb04","yb06","yb12","yb13","fil36","yb08","yb22")
+names(franz_genotypes_slashes)
+
+```
+## Changing 0 to ?
+FRANz requires unknown alleles to be marked as '?' rather than '0'. We can loop through our columns and mutate each of them to fix this.
+```{r}
+for (col in colnames(franz_genotypes_slashes)) {
+  if (col != 'Tree') {
+    # regex for 0/
+    franz_genotypes_slashes[[col]] = gsub("^0\\/", "?/", franz_genotypes_slashes[[col]])
+    # regex for /0
+    franz_genotypes_slashes[[col]] = gsub("\\/0$", "/?", franz_genotypes_slashes[[col]])
+  }
+}
+```
+
+
+## Removing clones from our data
+Although the formatting is mostly ready to go, we still have to do some more cleaning of our data.
+
+Before we run FRANz pedigree, we want to remove clones from our data to avoid confusions in the pedigree inference. Let's take a look to see how many are cloned.
+```{r}
+franz_genotypes_slashes %>%
+  # filtering for cloned results only, regardless of the Tree ID
+  filter(duplicated(franz_genotypes_slashes%>%select(-Tree))) %>%
+  # arranging by a couple of the alleles so that the clones show up together regardless of their tree IDs
+  arrange(yb01,yb15,Tree)
+```
+This shows all non-original rows, ignoring the tree ID. This means that there is one entry with 0 microsatellite data in addition to the 4 entries we see at the end of this list, and that for TV5060 and TV5061, there is one more tree which will remain in the data after our filtering. As the remaining sample without any genetic data simply won't be analyzed by FRANz, we can ignore this.
+
+[TODO: check all cloned data to figure out if they are actually nearby each other and, therefore, interchangeable, i.e. does methodology picking each tree matter when filtering out clones]
+```{r}
+
+```
+
+
+Now, lets actually remove these clones.
+```{r}
+# just going to remove the clones to make it simpler
+franz_cloneless <- franz_genotypes_slashes %>%
+  filter(!duplicated(franz_genotypes_slashes %>% select(-Tree)))
+
+franz_cloneless %>% head()
+franz_cloneless %>% dim()
+# now making rough franz input file for this
+```
+
+Now we can create the rough text file which will be used for franz. This needs some further manual formatting.
+```{r}
+franz_cloneless %>% write_delim("franz-files/franz_cloneless_rough.dat", delim=" ", quote='none', col_names=FALSE)
+
+```
+
+
+Here are changes that were made because of errors running FRANz:
+- 
+
+This following header was added into the renamed franz_cloneless.dat:
+```{}
+1 10 / cloneless
+1519 tikaboo
+```
+This signifies:
+```{}
+???, # of loci, allele deliminator character, name???
+# of samples, ???
+```
+
+Additionally, the file was renamed to "franz_cloneless.dat"
+[TODO: fully/further explain what exactly the 1, cloneless, and tikaboo signify]
+
+## Running in FRANz
+Here is the command used to run the analysis in FRANz:
+```{}
+Franz was run with the following command within the folder franz-files:
+FRANz --Nmax 10000 --selfing --poutformat 2 --pedigreeoutformat 1,2,3 franz_cloneless.dat
+```
+--Nmax 10000 estimates that the maximum number of potential parents is 10000
+--selfing allows for instances of selfing to be considered for parentage
+--poutformat 2 means that all LOD scores will be included in parentage.csv
+--pedigreeoutformat 1,2,3 means we generate a graphic visualization, a FRANz .dat format, and a .txt format (which we will use for further analysis)
+
+
+
+
+
+

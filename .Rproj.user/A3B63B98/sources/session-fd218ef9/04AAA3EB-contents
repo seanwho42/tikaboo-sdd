@@ -1,0 +1,244 @@
+# 3 - Seed Dispersal Distance (SDD) determination
+
+## Setup
+```{r}
+library(tidyverse)
+library(ggmap)
+library(geosphere)
+library(janitor)
+```
+
+
+## Reading in data from FRANz output
+FRANz output several files. The two data files we will be importing for analysis are 'pedigree.txt' and 'parentage.csv'. 'pedigree.txt' has the maximum likelihood inferred pedigree, while 'parentage.csv' contains maximum likelihood scores for all tested relationships. The code below imports the pedigree file.
+```{r}
+# read_table uses any whitespace as delimiter
+pedigree = read_table('franz-files/pedigree.txt') %>% clean_names() %>% 
+  # added selfed column for ease later on with visualization and such
+  mutate(selfed = (sire == dam) & !is.na(dam)) %>%
+  filter(sire!='*') %>%
+  mutate(dam=na_if(dam, '*'))
+
+head(pedigree)
+dim(pedigree)
+```
+Now, we have to import the parentage file and filter by LOD scores greater than 2. We accomplish this by filtering all the parentage entries to those with LOD scores greater than 2, and then doing an inner join with our pedigree data using both parents as the key.
+
+```{r}
+
+# # reading in parentage lods to rule out any pedigree relationships with bad LOD scores, if they exist
+
+# reading in parentage lods to rule out any pedigree relationships with bad LOD scores, if they exist
+parentage_lods <- read_csv("franz-files/parentage.csv") %>% clean_names()
+parentage_lods
+
+
+filtered_parentage_lods <- parentage_lods %>%
+  filter(lod > 2)
+
+filtered_parentage_lods
+  
+# joining parentage and pedigree to get pedigree relationships with acceptable LOD scores
+pedigree
+
+filtered_franz <- inner_join(pedigree, filtered_parentage_lods, by = c("id" = "offspring", "sire" = "parent_1", "dam" = "parent_2")) %>%
+  rename('Tree' = 'id') %>% 
+  # making parent type sire or dam for now, but could be overwritten with max, min, selfed, etc
+  gather(key='parent_type', value='parent_id', sire, dam)
+
+head(filtered_franz)
+nrow(filtered_franz)
+```
+## Joining franz data to coord data
+Now we have to join our coordinates file to our filtered pedigree data.
+```{r}
+# removing na parent matches then doing an inner join off of parent id
+
+franz_coords <- inner_join(filtered_franz, coords, by=c("parent_id" = "Tree")) %>%
+  rename(parent_x = X, parent_y = Y) %>%
+  inner_join(y=coords, by="Tree") %>%
+  rename(offspring_x = X, offspring_y = Y) %>% 
+  select(Tree, parent_id, parent_x, parent_y, offspring_x, offspring_y, selfed) %>% 
+  distinct()
+
+
+names(franz_coords)
+head(franz_coords)
+nrow(franz_coords)
+
+franz_coords
+
+?inner_join
+?gather
+
+summary(franz_coords)
+```
+## Mapping the dispersal
+
+Now, let's make some maps to visualize our data. This will be accomplished using ggmaps. First, we have to set our boundary box for the map.
+```{r}
+map_lon_center = (max(franz_coords$offspring_x)+min(franz_coords$offspring_x))/2
+map_lat_center = (max(franz_coords$offspring_y)+min(franz_coords$offspring_y))/2
+
+map_center = c(
+  lon = (max(franz_coords$offspring_x)+min(franz_coords$offspring_x))/2,
+  lat = (max(franz_coords$offspring_y)+min(franz_coords$offspring_y))/2
+  )
+```
+
+Then we build the map itself
+```{r}
+franz_map_area <- get_googlemap(center = c(lon = map_lon_center, lat = map_lat_center),
+  zoom = 13,
+  maptype = 'terrain')
+
+?get_googlemap
+
+ggmap(franz_map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_segment(franz_coords,
+               mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y),
+               arrow = arrow(
+                 length = unit(0.01, "npc"),
+                 type = "closed",
+                 angle = 20),
+               size=1)
+```
+
+## Distance analysis
+Now its time to get some distances out of this data.
+In order to make the distance calculation library work properly, we have to do some reformatting of the data here. This isn't the cleanest way to do things, but it works. Here we populate distances_m with distances using geosphere. This meant making new columns containing coordinates as vectors, and then parsing this out when populating the tibble to calculate the distances with geosphere.
+Here we create the new column.
+```{r}
+franz_distances <- franz_coords %>%
+  mutate(offspring_coord_vector=paste(as.character(offspring_x), as.character(offspring_y))) %>%
+  mutate(parent_coord_vector=paste(as.character(parent_x), as.character(parent_y)))
+
+```
+
+Now we parse them out using string splitting, and then calculate the distances.
+```{r}
+# dummy row for data initialization that will be deleted later
+distances_m = tibble(offspring_id = "some_id", parent_id = "other_id", distance = 0)
+distances_m
+
+# for loop to populate the tibble
+for (i in 1:(nrow(franz_distances)) ){
+  distances_m <- distances_m %>% add_row(
+    offspring_id = franz_distances$Tree[i],
+    parent_id = franz_distances$parent_id[i],
+    distance = as.numeric(distm(as.numeric(unlist(strsplit(franz_distances$offspring_coord_vector[i], " ", fixed=T))),
+                     as.numeric(unlist(strsplit(franz_distances$parent_coord_vector[i], " ", fixed=T)))))
+    )
+}
+
+distances_m <- distances_m %>% filter(offspring_id != "some_id")
+
+head(distances_m)
+```
+
+Now we add the distances calculation to the a new table with all of the data.
+```{r}
+# now lets join this onto franz_filtered
+trees_distances <- inner_join(distances_m, franz_coords, by = c("offspring_id"="Tree", 
+                                               "parent_id"="parent_id"))
+head(trees_distances)
+
+# todo: can use trees_distances to run linear regression if we want to analyze SDD in the context of lat/longitude of parent
+
+# will want to leave out the stuff from lower down since there weren't really
+# anyinferred relationships there, it had slightly different methodology, and
+# the one example is the only super long SDD example
+```
+
+## Visualizations and summary statistics
+Now its time to visualize this data. We'll be doing further analysis after incorporating the results from STRUCTURE, but let's first get an idea of what we're looking at.  
+
+Let's start with some summary statistics.
+```{r}
+trees_distances %>%
+  summarize(median_d = median(distance),
+            mean_d = mean(distance),
+            sd_d = sd(distance),
+            max_d = max(distance),
+            min_d = min(distance),
+            n = n())
+```
+And now some histograms, to better understand the distribution.
+```{r}
+# histograms
+trees_distances %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2", binwidth=200) +
+  geom_density(color = "red") +
+  theme_classic() +
+  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
+```
+
+Because there is an outlier over 10000 meters, let's look at another histogram with that outlier removed
+```{r}
+# filter out the super big ones for clarity in visualization
+trees_distances %>%
+  filter(distance < 2500, distance != 0) %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2", binwidth=20) +
+  geom_density(color = "red") +
+  theme_classic() +
+  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
+```
+With all of the scattered results over 500 meters, lets also look at the results below 500m
+```{r}
+# filter out the super big ones for clarity in visualization
+trees_distances %>%
+  filter(distance < 500, distance != 0) %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2", binwidth=20) +
+  geom_density(color = "red") +
+  theme_classic() +
+  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
+```
+
+[TODO: move this into a results section?]
+Now, let's try to understand this data a bit better. We have inferred the most likely pedigree, and ruled out those relationships with LOD scores under 2, but we can't be sure that these relationships are the result of pollination or seed dispersal. As such, let's examine the maximum and minimum distance of every inferred distance to see if there's a significant difference.
+```{r}
+trees_distances
+
+# NEW GRAPHS FOR MAX/MIN VALUES
+min_trees_distances <-
+  trees_distances %>%
+  group_by(offspring_id) %>%
+  filter(selfed == F) %>% 
+  summarize(offspring_id, parent_id, distance = min(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+
+summary(min_trees_distances)
+
+min_trees_distances %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2", binwidth=200) +
+  geom_density(color = "red") +
+  theme_classic() +
+  labs(x='Minimum distances (m)', y='Density', title='Distribution of estimated dispersal distance minima')
+
+
+# NOW MAX
+
+max_trees_distances <-
+  trees_distances %>%
+  group_by(offspring_id) %>%
+  filter(selfed == F) %>% 
+  summarize(offspring_id, parent_id, distance = max(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+
+summary(max_trees_distances)
+
+max_trees_distances %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2", binwidth=200) +
+  geom_density(color = "red") +
+  theme_classic() +
+  labs(x='Maximum distances (m)', y='Density', title='Distribution of estimated dispersal distance maxima')
+
+t.test(min_trees_distances$distance, max_trees_distances$distance)
+
+#todo filter these out so that we are only focusing on those which have one instance recorded
+
+```

@@ -1,0 +1,1 @@
+"0","coords <- coords %>% mutate(Lat = as.numeric(Lat))"

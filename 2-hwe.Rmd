@@ -1,0 +1,99 @@
+# 2 - hardy weinberg equilibrium
+One of the assumptions for our analysis is that the alleles at each loci are at Hardy-Weinberg equillibrium. We can check this using Genodive.
+
+## Genodive formatting
+We have to change the formatting of our data in order to read it into Genodive. This means combining alleles 1 and 2 for each locus, and making each allele 3 digits long.
+```{r}
+gdv_trees <- geno_coords %>%
+  mutate(
+    pop = 1,
+    yb01 = paste(str_pad(`yb01 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb01 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb05 = paste(str_pad(`yb05 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb05 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb15 = paste(str_pad(`yb15 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb15 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb21 = paste(str_pad(`yb21 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb21 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb04 = paste(str_pad(`yb04 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb04 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb06 = paste(str_pad(`yb06 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb06 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb12 = paste(str_pad(`yb12 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb12 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb13 = paste(str_pad(`yb13 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb13 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    fil36 = paste(str_pad(`fil36 Allele#1`, width=3, pad="0"),
+                  str_pad(`fil36 Allele#2`, width=3, pad="0"),
+                  sep=""),
+    yb08 = paste(str_pad(`yb08 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb08 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb20 = paste(str_pad(`yb20 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb20 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb22 = paste(str_pad(`yb22 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb22 Allele#2`, width=3, pad="0"),
+                 sep="")
+  ) %>%
+  select("pop","Tree","yb01","yb05","yb15","yb21","yb04","yb06","yb12","yb13","fil36","yb08","yb20","yb22")
+```
+
+Now we write this to a TSV.
+```{r}
+head(gdv_trees)
+write_tsv(gdv_trees, "data-files/gdv-trees.tsv")
+```
+For formatting, we need to know how many entries we have.
+```{r}
+dim(gdv_trees)
+```
+
+Now we save a copy of our tsv, titled 'data-files/gdv-trees.tsv' with the following lines added before our headers:
+```
+tikaboo trees microsatellite genotypes
+1562	1	12	2	3
+tikaboo-trees
+```
+Description (taken/summarized from the genodive documentation)
+Line 1: Comments
+Line 2: Second line, five numbers separated by tabs:
+ - The total number of individuals
+ - The number of populations
+ - The number of loci
+ - The maximum ploidy levels used
+ - The number of digits used to code a single allele
+Line 3: Population names
+
+[TODO: elaborate on the results here?]
+
+Now let's calculate HWE. This is done in Genodive 3.06 using Nei's heterozygosity-based Gis statistic with 999 permutations, with Gis values saved under 'data-files/gis-gdv-trees'
+```{r}
+# gathering just to increase readability
+read_tsv('data-files/hwe-gdv-trees.gdv') %>% select(-`Obs.`) %>% gather()
+```
+
+
+Let's also check the allele frequencies in Genodive. Our HWE and allele frequency results are saved under 'GenoDive Results.gdv'.
+
+[TODO: these deviations, though significant, are not large at many loci? What values constitute a large deviation?]
+[TODO: cite previous literature here -- nonrandom mating at hybrid region etc]
+Looking at these results, we see significant deviations from Hardy-Weinberg equilibrium across all loci. This is expected, as we are at a hybrid zone, and as such there is non-random mating. Additionally, the samples collected are spatially clustered, and thus more likely to be related. It is also unavoidable, as some motivation for this study is to study this hybrid zone to see if hybrids may prove to be important for the survival of *Y. brevifolia* and *Y. jaegeriana*.
+
+Additionally, we see high null allele rations at two of our loci, with 29.2% null alleles at yb05 and 38.3% null alleles at yb20. As such, these two loci are excluded from any further analyses.
+
+
+
+
+
+
+
+

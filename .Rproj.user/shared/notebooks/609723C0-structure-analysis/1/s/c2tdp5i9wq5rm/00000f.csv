@@ -1,0 +1,7 @@
+"0","structure_pedigree_no_outlier = structure_pedigree %>% "
+"0","  filter(distance < 5000)"
+"0",""
+"0","structure_pedigree_no_outlier %>%"
+"0","  ggplot(aes(x=off_percent_brev, y=distance)) +"
+"0","  geom_point() +"
+"0","  theme_classic()"

@@ -1,0 +1,104 @@
+# Structure analysis
+## setup
+```{r}
+library(tidyverse)
+library(ggmap)
+library(janitor)
+```
+Here, we read in the data output from structure (located in 'USGS structure assignments.csv'). We will also be doing some visualization of the STRUCTURE data in order to make sense of this, as this is the first time we are examining this data, and it contains data for Joshua trees beyond those which we are studying in Tikaboo valley. Then we will join it to trees_distances (the output data from '5-sdd-results.Rmd')
+
+## Reading in the data
+```{r}
+structure_assignments <- read_csv('data-files/USGS structure assignments.csv') %>%
+  clean_names()
+```
+## Cleaning, exploring, joining with pedigree + distance/coord data
+Let's start by reviewing our current data so far, and then taking a look at the STRUCTURE data.
+```{r}
+summary(trees_distances)
+
+summary(structure_assignments)
+```
+[TODO: not sure what to do with the missing category, so let's leave it in for now in case we need to filter based off that later]
+
+"Pop" stands out here. These should correspond to the separate sites that samples were collected from for analysis. It's a categorical variable, and as such, should be converted into a factor.
+
+Let's cut out percent_brev_run1 and run2, as we will be using percent_brev_ave for our analysis. This corresponds to genetic similarity to *Y. brevifolia* as determined by the analysis.
+
+We'll save this as 'structure'.
+```{r}
+structure = structure_assignments %>%
+  select(-numb, -percent_brev_run1, -percent_brev_run2) %>%
+  mutate(pop = as.factor(pop))
+
+summary(structure)
+```
+### Examining STRUCTURE data
+lets take a look into changes in percent_brev_ave across our populations:
+```{r}
+structure %>%
+  group_by(pop) %>% 
+  summarize(
+    mean_percent_brev = mean(percent_brev_ave),
+    n = n()
+  )
+```
+To more clearly make sense out of this, we can create histograms to visualize percent_brev-ave for each of these populations.
+```{r}
+structure %>%
+  ggplot(aes(x=percent_brev_ave))+
+  geom_histogram()+
+  facet_wrap(~pop)+
+  theme_classic()
+  
+```
+Looking at this data, we can assume groups 1, 2, and 6 are *Y. jaegeriana* populations, while groups 2, 3, and 4 are distinct *Y. brevifolia* populations. Because Tikaboo valley is the only location in which the two species of joshua trees hybridize, we can see that population 5 should be tikaboo valley.
+
+[TODO: REMOVE THIS?]
+To check this, we can look into the ids of the joshua trees. All the samples we worked with in tikaboo valley started with TV
+```{r}
+structure %>% filter(pop == 5)
+```
+
+Here we can see that all of our samples from pop 5 start with TV. Let's see if there are any that start with 'TV' in other populations.
+```{r}
+# filtering by first two characters
+structure %>% filter(substr(tree, 1, 2) == "TV") %>% summary()
+```
+Looks like 63 'TV' samples are in population 2.
+
+However, all of these values aren't just TV, but contain other letters afterwards (i.e. TVS0000 or TVSt0000)
+
+[TODO: ask chris about this.. thought that pop was entered info already but this confuses that]
+```{r}
+structure %>% filter(substr(tree, 1, 2) == "TV") %>% filter(pop == 2)
+```
+This means that we know these aren't part of our initial data even before we join the two datasets together. As such, we know that these aren't relevant to our data.
+
+## Joining pedigree data
+For our analysis, we will be joining off of our offsprings, and thus using the offspring % brev for our analysis.
+[TODO: elaborate on this?]
+```{r}
+# inner join to cut samples which don't correspond
+structure_pedigree = inner_join(trees_distances, structure, by=join_by('offspring_id'=='tree')) %>%
+  select(-pop) %>% 
+  mutate(off_percent_brev=percent_brev_ave)
+
+summary(structure_pedigree)
+```
+
+[TODO: add in parent percentage??]
+```{r}
+#todo: add this in properly
+#inner_join(structure_pedigree, structure, by=join_by('parent_id'=='tree'))
+
+#structure_pedigree = inner_join(structure_pedigree, structure, by=join_by('parent_id'=='tree')) %>%
+#  mutate(par_percent_brev=percent_brev_ave) %>% 
+#  select(-pop) # all are in pop 5
+
+
+#summary(structure_pedigree)
+```
+
+
+

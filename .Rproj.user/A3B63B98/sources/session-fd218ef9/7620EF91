@@ -1,0 +1,26 @@
+{
+    "id": "7620EF91",
+    "path": "~/Documents/tikaboo-sdd/7-spatial-autocorrelation.Rmd",
+    "project_path": "7-spatial-autocorrelation.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1732294278280.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "3,29",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1732298207,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1732298207030,
+    "read_only": false,
+    "read_only_alternatives": []
+}

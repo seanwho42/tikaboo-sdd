@@ -1,0 +1,4 @@
+"0","# now lets join this onto franz_filtered"
+"0","trees_distances <- inner_join(distances_m, franz_coords, by = c(""offspring_id""=""Tree"", "
+"0","                                               ""parent_id""=""parent_id""))"
+"0","head(trees_distances)"

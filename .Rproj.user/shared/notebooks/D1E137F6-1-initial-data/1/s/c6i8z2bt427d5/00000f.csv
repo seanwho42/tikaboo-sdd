@@ -1,0 +1,7 @@
+"0","coords <- coords %>% filter(!(Tree %in% duplicated_coords_trees$Tree))"
+"0","dim(coords)"
+"1","[1]"
+"1"," 6180"
+"1","    7"
+"1","
+"

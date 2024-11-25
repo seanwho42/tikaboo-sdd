@@ -1,0 +1,27 @@
+"0",""
+"0","# # reading in parentage lods to rule out any pedigree relationships with bad LOD scores, if they exist"
+"0",""
+"0","# reading in parentage lods to rule out any pedigree relationships with bad LOD scores, if they exist"
+"0","parentage_lods <- read_csv(""franz-files/parentage.csv"") %>% clean_names()"
+"1","[38;5;232mNew names:
+[36m•[38;5;232m `Loci Typed` -> `Loci Typed...2`
+[36m•[38;5;232m `Loci Typed` -> `Loci Typed...4`
+[36m•[38;5;232m `Loci Typed` -> `Loci Typed...6`[39m
+"
+"2","Warning:"
+"2"," [38;5;232mOne or more parsing issues, call `problems()` on your data frame for details, e.g.:
+  dat <- vroom(...)
+  problems(dat)[39m
+"
+"1","[1mRows: [22m[34m14515[39m [1mColumns: [22m[34m14[39m
+"
+"1","[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (4): Offspring, Parent 1, Parent 2, Pair LOD Parent 2
+[32mdbl[39m (10): Loci Typed...2, Loci Typed...4, Loci Typed...6, LOD, Posterior, Common Loci Typed, Mismatches, n_f, n_m, Pair LOD Parent 1
+"
+"1","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message.
+"
+"0","parentage_lods"

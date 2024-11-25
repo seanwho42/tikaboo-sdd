@@ -1,0 +1,12 @@
+"0","ggmap(franz_map_area) +"
+"0","  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +"
+"0","  geom_segment(structure_pedigree,"
+"0","               mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=off_percent_brev),"
+"0","               arrow = arrow("
+"0","                 length = unit(0.01, ""npc""),"
+"0","                 type = ""closed"","
+"0","                 angle = 20),"
+"0","               size=1)"
+"2","Warning:"
+"2"," [38;5;232mRemoved 1 rows containing missing values (`geom_segment()`).[39m
+"

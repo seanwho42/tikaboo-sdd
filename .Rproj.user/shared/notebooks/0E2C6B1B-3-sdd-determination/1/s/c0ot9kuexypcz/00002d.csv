@@ -1,0 +1,7 @@
+"0",""
+"0","filtered_franz <- inner_join(pedigree, filtered_parentage_lods, by = c(""id"" = ""offspring"", ""sire"" = ""parent_1"", ""dam"" = ""parent_2"")) %>%"
+"0","  rename('Tree' = 'id') %>% "
+"0","  # making parent type sire or dam for now, but could be overwritten with max, min, selfed, etc"
+"0","  gather(key='parent_type', value='parent_id', sire, dam)"
+"0",""
+"0","head(filtered_franz)"

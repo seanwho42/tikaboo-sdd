@@ -1,0 +1,6 @@
+"0","structure %>%"
+"0","  group_by(pop) %>% "
+"0","  summarize("
+"0","    mean_percent_brev = mean(percent_brev_ave),"
+"0","    n = n()"
+"0","  )"

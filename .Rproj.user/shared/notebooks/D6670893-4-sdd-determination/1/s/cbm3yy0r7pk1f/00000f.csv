@@ -1,0 +1,4 @@
+"0","franz_distances <- franz_coords %>%"
+"0","  mutate(offspring_coord_vector=paste(as.character(offspring_x), as.character(offspring_y))) %>%"
+"0","  mutate(parent_coord_vector=paste(as.character(parent_x), as.character(parent_y)))"
+"0",""

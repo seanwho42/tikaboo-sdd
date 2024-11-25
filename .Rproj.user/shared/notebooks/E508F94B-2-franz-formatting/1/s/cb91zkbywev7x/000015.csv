@@ -1,0 +1,7 @@
+"0","franz_genotypes_slashes %>%"
+"0","  # add a boolean column to signify cloned data"
+"0","  mutate(cloned = duplicated(franz_genotypes_slashes%>%select(-Tree))) %>%"
+"0","  # filtering for cloned results only"
+"0","  filter(cloned==T) %>%"
+"0","  # filtering by a coupe of the alleles so that the clones show up together regardless of their tree IDs"
+"0","  arrange(yb01,yb15,Tree)"

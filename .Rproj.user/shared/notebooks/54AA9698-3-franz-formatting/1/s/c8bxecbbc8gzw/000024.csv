@@ -1,0 +1,5 @@
+"0","franz_genotypes_slashes %>%"
+"0","  # filtering for cloned results only, regardless of the Tree ID"
+"0","  filter(duplicated(franz_genotypes_slashes%>%select(-Tree))) %>%"
+"0","  # arranging by a couple of the alleles so that the clones show up together regardless of their tree IDs"
+"0","  arrange(yb01,yb15,Tree)"

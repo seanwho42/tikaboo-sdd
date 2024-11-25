@@ -1,0 +1,3 @@
+"0","map_lon_center = (max(geno_coords$X)+min(geno_coords$X))/2"
+"0","map_lat_center = (max(geno_coords$Y)+min(geno_coords$Y))/2"
+"0",""

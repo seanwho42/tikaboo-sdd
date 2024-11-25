@@ -1,0 +1,7 @@
+"0","genotypes <- genotypes %>% filter(!(Tree %in% duplicated_genotypes_trees$Tree))"
+"0","dim(genotypes)"
+"1","[1]"
+"1"," 1573"
+"1","   25"
+"1","
+"

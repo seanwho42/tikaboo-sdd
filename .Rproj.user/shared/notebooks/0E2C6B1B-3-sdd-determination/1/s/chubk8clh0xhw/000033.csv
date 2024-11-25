@@ -1,0 +1,16 @@
+"0","# read_table uses any whitespace as delimiter"
+"0","pedigree = read_table('franz-files/pedigree.txt') %>% clean_names() %>% "
+"0","  # added selfed column for ease later on with visualization and such"
+"0","  mutate(selfed = (sire == dam) & !is.na(dam)) %>%"
+"0","  filter(sire!='*') %>%"
+"0","  mutate(dam=na_if(dam, '*'))"
+"1","
+[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  ID = [31mcol_character()[39m,
+  SIRE = [31mcol_character()[39m,
+  DAM = [31mcol_character()[39m
+)
+
+"
+"0","head(pedigree)"
