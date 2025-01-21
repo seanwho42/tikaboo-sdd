@@ -47,7 +47,7 @@ Alright, now onto other cleaning. For some reason Lat is readying as a character
 coords <- coords %>% mutate(Lat = as.numeric(Lat))
 ```
 
-Now we have to convert the format to decimans instead of using minutes
+Now we have to convert the format to decimals instead of using minutes
 ```{r}
 coords <- coords %>%
   mutate(Y = (Lat + `Lat '`/60), X = -(Long + `Long '`/60)) %>%
@@ -177,7 +177,7 @@ ggmap(map_area) +
 ```
 
 
-Let's also try and do some grouping to understand our clusters of data here. We can do this based off of the prefixes in our dataset, and use regext to parse those from the id strings.
+Let's also try and do some grouping to understand our clusters of data here. We can do this based off of the prefixes in our dataset, and use regex to parse those from the id strings.
 ```{r}
 grouped_geno_coords = geno_coords %>% mutate(id_group = as.factor(gsub('(\\d*)\\w?$', '', Tree)))
 

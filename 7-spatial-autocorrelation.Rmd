@@ -6,6 +6,7 @@ setting up required libraries
 library(tidyverse)
 library(janitor)
 library(ggmap)
+library(spdep)
 # library(spdep) [TODO: isn't installing]
 ```
 
@@ -23,5 +24,120 @@ Now let's join this to our coordinate data. There's need to connect this to geno
 morph_coords = inner_join(morphology, coords, by=c('tree'='Tree')) %>% select(tree, X, Y, height)
 summary(morph_coords)
 ```
+We're left with 1096 trees:
 
+```{r}
+ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_point(morph_coords,
+               mapping=aes(x=X, y=Y),
+               size=.5)
+```
+need to make gemoetric point coordinates for spdep Moran's I functions
+```{r}
+sf_morph_coords <- morph_coords %>%
+  mutate(long=X, lat=Y) %>% 
+  st_as_sf(coords = c("X", "Y"), crs=4326)
+
+# 4326 is the code for gps lat/long
+
+```
+
+
+Now we have to assign our neighbors -- we are doing this distance based -- all within 10m will qualify
+```{r}
+neighbors <- dnearneigh(x=sf_morph_coords, d1=0, d2=10)
+```
+
+
+
+Now add weights:
+```{r}
+weighted <- nb2listw(neighbors, style="W", zero.policy=F)
+```
+
+
+Now we get global Moran's I:
+```{r}
+MC  <-  moran.mc(sf_morph_coords$height, weighted, nsim=5000, zero.policy=F)
+```
+
+```{r}
+plot(MC, main="", las=1)
+```
+
+```{r}
+MC
+```
+Now local Moran's I:
+```{r}
+MCi <- localmoran_perm(sf_morph_coords$height, weighted, nsim = 9999)
+MCi.df <- as.data.frame(MCi)
+```
+
+Now let's add those p values to our data:
+```{r}
+sf_morph_coords$p <- MCi.df$`Pr(folded) Sim`
+summary(sf_morph_coords$p)
+```
+
+[todo: Note that the localmoran_perm function generates two different p-values: MCi.df$`Pr(z != E(Ii)) Sim` and MCi.df$`Pr(folded) Sim`. The former is for a two sided test (alternative = "two.sided") and the latter is a “folded” p-value for a one-sided test.]
+
+
+Now lets map our p values:
+```{r}
+ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_point(sf_morph_coords,
+               mapping=aes(x=long, y=lat, color=p),
+               size=.5)
+```
+
+
+
+```{r}
+ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_point(sf_morph_coords,
+               mapping=aes(x=long, y=lat, color=height),
+               size=.5)
+```
+
+```{r}
+ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  stat_summary_2d(sf_morph_coords,
+               mapping=aes(x=long, y=lat, z=height))
+```
+```{r}
+sf_morph_coords %>% summary()
+```
+
+
+```{r}
+sf_morph_coords$Ii <- hotspot(MCi, Prname="Pr(folded) Sim", cutoff = 0.05, p.adjust = "none")
+
+# Replace NA with ">0.05". This requires that the Ii factor be re-leveled
+sf_morph_coords$Ii <- factor(sf_morph_coords$Ii, levels=c("High-High","Low-Low", "Low-High", "High-Low", ">0.05"))
+sf_morph_coords$Ii[is.na(sf_morph_coords$Ii)] <- ">0.05"
+```
+
+```{r}
+spatial_species = inner_join(sf_morph_coords%>%select(-geometry), species_sdd, by=c('tree' ='offspring_id'))
+summary(species_sdd)
+
+
+ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_point(spatial_species,
+               mapping=aes(x=long, y=lat, color=Ii),
+               size=.5)+
+  facet_grid(~species)
+```
+
+```{r}
+sf_morph_coords %>% 
+  group_by(Ii) %>% 
+  summarize(mean(height))
+```
 

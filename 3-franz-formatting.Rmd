@@ -1,4 +1,4 @@
-# 2 - franz formatting
+# 3 - franz formatting
 ## Description
 This code formats the genotype data from '1-initial-data.Rmd' in order to create a file which can be read by FRANz pedigree.
 
@@ -117,8 +117,9 @@ Additionally, the file was renamed to "franz_cloneless.dat"
 Here is the command used to run the analysis in FRANz:
 ```{}
 Franz was run with the following command within the folder franz-files:
-FRANz --Nmax 10000 --selfing --poutformat 2 --pedigreeoutformat 1,2,3 franz_cloneless.dat
+FRANz --Nmax 60000 --selfing --poutformat 2 --pedigreeoutformat 1,2,3 --hwetestout hwe-out --mhburnin 50000000 --mhsamplefreq 1000 --mhiter 100000000000 --samaxiter 10000000000 --mintyped 6 franz_cloneless.dat
 ```
+
 --Nmax 10000 estimates that the maximum number of potential parents is 10000
 --selfing allows for instances of selfing to be considered for parentage
 --poutformat 2 means that all LOD scores will be included in parentage.csv

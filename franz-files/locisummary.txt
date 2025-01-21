@@ -1,6 +1,6 @@
 Software Version            : FRANz 1.2.3
 Dataset                     : cloneless
-Time of Data Analysis       : Sun Nov 24 20:01:05 2024
+Time of Data Analysis       : Sat Jan  4 02:20:05 2025
 
 
 *** Locus 1 ***
@@ -44,8 +44,8 @@ Time of Data Analysis       : Sun Nov 24 20:01:05 2024
 Observed Heterozygosity     : 0.9090
 Expected Heterozygosity     : 0.9355
 Hardy-Weinberg Test
-   p-Value                  : 0.0056
-   Standard Error           : 0.0018
+   p-Value                  : 0.0218
+   Standard Error           : 0.0039
 Estimated Null Allele Freq. : 0.0119
 Estimated Genotyping Failure: 0.0718 (109 untyped)
 Polymorphic Inform. Content : 0.9314

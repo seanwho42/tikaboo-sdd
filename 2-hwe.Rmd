@@ -78,7 +78,7 @@ Line 3: Population names
 Now let's calculate HWE. This is done in Genodive 3.06 using Nei's heterozygosity-based Gis statistic with 999 permutations, with Gis values saved under 'data-files/gis-gdv-trees'
 ```{r}
 # gathering just to increase readability
-read_tsv('data-files/hwe-gdv-trees.gdv') %>% select(-`Obs.`) %>% gather()
+# read_tsv('data-files/hwe-gdv-trees.gdv') %>% select(-`Obs.`) %>% gather()
 ```
 
 

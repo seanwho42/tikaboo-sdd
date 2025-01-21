@@ -1,12 +1,12 @@
 Software Version            : FRANz 1.2.3
 Dataset                     : cloneless
-Time of Data Analysis       : Sun Nov 24 20:01:25 2024
+Time of Data Analysis       : Sat Jan  4 02:20:25 2025
 
 
 *** Summary Statistics ***
 
 Locus       Alleles    Min    Max      N   Hobs   Hexp    PIC  EX 1P  EX 2P  EX PP     ID  IDsib  P_NULL  HWE PV  HWE SE
-1                30    135    195    1406  0.909  0.936  0.931  0.768  0.869  0.971  0.008  0.284  0.0119  0.0056  0.0018
+1                30    135    195    1406  0.909  0.936  0.931  0.768  0.869  0.971  0.008  0.284  0.0119  0.0218  0.0039
 2                27     19    211    1337  0.788  0.914  0.908  0.706  0.828  0.952  0.014  0.296  0.0713  0.0000  0.0000
 3                35     91    170    1380  0.641  0.843  0.832  0.554  0.716  0.896  0.035  0.338  0.1362  0.0000  0.0000
 4                33    130    246    1463  0.876  0.910  0.903  0.694  0.819  0.948  0.015  0.299  0.0172  0.0000  0.0000
@@ -63,7 +63,7 @@ Output
   Pedigree outfile dot      : pedigree.dot
   Pedigree outfile text     : pedigree.txt
   MCMC logfile              : mcmc.log
-  Detailed HWE test results : --missingout
+  Detailed HWE test results : hwe-out
   Missing Data statistics   : none (specify --missingout)
 
 
@@ -104,24 +104,21 @@ Max. mismatching loci Triple: 3
 
 *** Maximum Likelihood Pedigree ***
 
-Likelihood                  : -1103.300
+Likelihood                  : -711.140
 Number of Individuals
-  Generation   -7           :  1241
-  Generation   -6           :   179
-  Generation   -5           :    63
-  Generation   -4           :    16
-  Generation   -3           :     9
-  Generation   -2           :     1
-  Generation   -1           :     7
-  Generation    0           :     3
+  Generation   -4           :  1352
+  Generation   -3           :   114
+  Generation   -2           :    38
+  Generation   -1           :    10
+  Generation    0           :     5
 
 
 *** MCMC ***
 
-Observed Pedigrees in MH    : 271203
-Acceptance Ratio in MH      : 0.243
+Observed Pedigrees in MH    : 1215752
+Acceptance Ratio in MH      : 0.214
 Allele Freq. updates in MH  : 0
-Estimated Sampling Rate Fem.: 0.266 (+- 0.020)
-Estimated Sampling Rate Male: 0.266 (+- 0.020)
+Estimated Sampling Rate Fem.: 0.267 (+- 0.020)
+Estimated Sampling Rate Male: 0.267 (+- 0.020)
 Swap Attempts in MCMCMC     : 0
 Accepted Swaps in MCMCMC    : 0

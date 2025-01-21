@@ -1,4 +1,4 @@
-# Structure analysis
+# 5 - Structure analysis
 ## setup
 ```{r}
 library(tidyverse)
@@ -12,6 +12,7 @@ Here, we read in the data output from structure (located in 'USGS structure assi
 structure_assignments <- read_csv('data-files/USGS structure assignments.csv') %>%
   clean_names()
 ```
+
 ## Cleaning, exploring, joining with pedigree + distance/coord data
 Let's start by reviewing our current data so far, and then taking a look at the STRUCTURE data.
 ```{r}
@@ -43,7 +44,8 @@ structure %>%
     n = n()
   )
 ```
-To more clearly make sense out of this, we can create histograms to visualize percent_brev-ave for each of these populations.
+
+To more clearly make sense out of this, we can create histograms to visualize percent_brev_ave for each of these populations.
 ```{r}
 structure %>%
   ggplot(aes(x=percent_brev_ave))+

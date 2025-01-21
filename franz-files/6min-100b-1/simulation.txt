@@ -1,0 +1,78 @@
+Software Version            : FRANz 1.2.3
+Dataset                     : cloneless
+Time of Data Analysis       : Fri Jan  3 15:20:54 2025
+
+
+*** Simulation Settings ***
+
+Seed                        : 1735942853
+Simulation Steps            : 50000
+Selfing Rate                : 0.191
+Rate of Typing Error
+  Locus 1                   : 0.010
+  Locus 2                   : 0.010
+  Locus 3                   : 0.010
+  Locus 4                   : 0.010
+  Locus 5                   : 0.010
+  Locus 6                   : 0.010
+  Locus 7                   : 0.010
+  Locus 8                   : 0.010
+  Locus 9                   : 0.010
+  Locus 10                  : 0.010
+Proportion Typed
+  Locus 1                   : 0.926
+  Locus 2                   : 0.880
+  Locus 3                   : 0.908
+  Locus 4                   : 0.963
+  Locus 5                   : 0.960
+  Locus 6                   : 0.971
+  Locus 7                   : 0.918
+  Locus 8                   : 0.937
+  Locus 9                   : 0.930
+  Locus 10                  : 0.888
+
+
+*** Mismatching Loci ***
+
+Max. mismatching loci Dyad  : 2
+Max. mismatching loci Triple: 3
+
+Histogram Mismatches Parent-Offspring pairs:
+0                           : 93068
+1                           : 6670
+2                           : 256
+3                           : 6
+
+Histogram Mismatches Unrelated pairs:
+0                           : 6
+1                           : 139
+2                           : 966
+3                           : 4005
+4                           : 11173
+5                           : 20272
+6                           : 25866
+7                           : 21775
+8                           : 11636
+9                           : 3646
+10                          : 516
+
+Histogram Mismatches Offspring-Mother-Father triples:
+0                           : 87330
+1                           : 11904
+2                           : 734
+3                           : 32
+
+Histogram Mismatches Offspring-Mother-Unrelated triples:
+0                           : 1
+1                           : 14
+2                           : 127
+3                           : 919
+4                           : 3737
+5                           : 10797
+6                           : 21006
+7                           : 27297
+8                           : 22985
+9                           : 10886
+10                          : 2231
+
+

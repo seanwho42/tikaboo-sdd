@@ -22,6 +22,35 @@ pedigree = read_table('franz-files/pedigree.txt') %>% clean_names() %>%
 head(pedigree)
 dim(pedigree)
 ```
+Let's check the results across multiple runs of FRANz to see how different they are. We can expect some variability because of the nature of MCMC. We do this to make sure we have the parameters tuned in correctly, and that the results are accurate.
+```{r}
+pedigree2 = read_table('franz-files/6min-100b-1/pedigree.txt') %>% clean_names() %>% 
+  # added selfed column for ease later on with visualization and such
+  mutate(selfed = (sire == dam) & !is.na(dam)) %>%
+  filter(sire!='*') %>%
+  mutate(dam=na_if(dam, '*'))
+
+head(pedigree)
+head(pedigree2)
+
+# join the two datasets off of all columns so we see how many are remaining.
+inner_join(pedigree, pedigree2, by=join_by('id'=='id', 'sire'=='sire', 'dam'=='dam', 'selfed'=='selfed'))
+
+# checking to makes sure that order of sire/dam doesnt matter here
+# inner_join(pedigree, pedigree2, by=join_by('id'=='id', 'sire'=='dam', 'dam'=='sire', 'selfed'=='selfed'))
+
+```
+After flipping the join to double check that the order doesn't matter, the only results that were remaining were those that were selfed, so this is not necessary.
+
+Only [111] data points were conserved in the output across our two runs of franz pedigree.
+
+
+```{r}
+pedigree = inner_join(pedigree, pedigree2, by=join_by('id'=='id', 'sire'=='sire', 'dam'=='dam', 'selfed'=='selfed'))
+```
+
+
+
 Now, we have to import the parentage file and filter by LOD scores greater than 2. We accomplish this by filtering all the parentage entries to those with LOD scores greater than 2, and then doing an inner join with our pedigree data using both parents as the key.
 
 ```{r}
@@ -189,9 +218,9 @@ trees_distances %>%
   theme_classic() +
   labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
 ```
+These instances of selfing are less than
 
-
-[TODO: REMOVE THIS PROBABLY]
+[TODO: remove/change data ranges for below graphs]
 Because there is an outlier over 10000 meters, let's look at another histogram with that outlier removed
 ```{r}
 # filter out the super big ones for clarity in visualization
@@ -260,6 +289,49 @@ t.test(min_trees_distances$distance, max_trees_distances$distance)
 
 ```
 
+However, this isn't checking to only include trees with two parents... so let's do that
+```{r}
+summary(trees_distances)
+two_parents_trees = trees_distances %>% 
+  filter(duplicated(offspring_id)) %>% 
+  select(offspring_id)
+
+two_parents_distances = inner_join(trees_distances, two_parents_trees)
+
+min_trees_distances <-
+  two_parents_distances %>%
+  group_by(offspring_id) %>%
+  filter(selfed == F) %>% 
+  summarize(offspring_id, parent_id, distance = min(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+
+
+summary(min_trees_distances)
+
+min_trees_distances %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2") +
+  theme_classic() +
+  labs(x='Minimum distances (m)', y='Density', title='Distribution of estimated dispersal distance minima')
+
+
+# now max distances
+
+max_trees_distances <-
+  two_parents_distances %>%
+  group_by(offspring_id) %>%
+  filter(selfed == F) %>% 
+  summarize(offspring_id, parent_id, distance = max(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+
+summary(max_trees_distances)
+
+max_trees_distances %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2") +
+  theme_classic() +
+  labs(x='Maximum distances (m)', y='Density', title='Distribution of estimated dispersal distance maxima')
+
+t.test(min_trees_distances$distance, max_trees_distances$distance)
+```
 
 
 

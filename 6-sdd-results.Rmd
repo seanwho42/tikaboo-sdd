@@ -1,4 +1,4 @@
-# Structure analysis
+# 6 - SDD results
 ## setup
 ```{r}
 library(tidyverse)
@@ -9,7 +9,7 @@ library(janitor)
 ### maps
 Let's make a map for the joined data.
 ```{r}
-ggmap(franz_map_area) +
+ggmap(map_area) +
   # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
   geom_segment(structure_pedigree,
                mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=off_percent_brev),
@@ -17,7 +17,7 @@ ggmap(franz_map_area) +
                  length = unit(0.01, "npc"),
                  type = "closed",
                  angle = 20),
-               size=1) +
+               size=0.2) +
   labs(color='Offspring % brevifolia')
 
 ?labs
@@ -44,12 +44,16 @@ species_sdd <- structure_pedigree %>%
   mutate(
     species = as.factor(case_when(
       off_percent_brev < 0.25 ~ 'y. Jaegeriana',
-      off_percent_brev >0.75 ~ 'y. Brevifolia',
+      off_percent_brev > 0.75 ~ 'y. Brevifolia',
       .default = 'hybrid'
     ))
   )
 
 summary(species_sdd$species)
+
+species_sdd %>% 
+  group_by(species) %>% 
+  summarize(mean=mean(distance), sd=sd(distance))
 ```
 
 
@@ -85,8 +89,9 @@ trees_distances %>%
   geom_histogram(fill="thistle2", binwidth=200) +
   geom_density(color = "red") +
   theme_classic() +
-  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
- ```
+  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')+
+  facet_wrap(~)
+```
 No dice on this type.. will have to keep looking
 
 

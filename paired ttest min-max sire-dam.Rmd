@@ -41,24 +41,25 @@ max_min_distance %>% summary()
 ```{r}
 t.test(max_min_distance$max, max_min_distance$min, paired=T)
 
-two_parents_meters %>% 
-  gather(key=group, value=distance, max, min)
 
 max_min_distance %>%
   gather(key=group, value=distance, max, min) %>%
-  summary()
+  group_by(group) %>% 
+  summarize(mean = mean(distance), sd = sd(distance), median = median(distance))
 
 max_min_distance %>%
   gather(key=group, value=distance, max, min) %>%
   ggplot(mapping=aes(x=distance, fill=group)) +
-  geom_histogram()
+  geom_histogram() +
+  facet_wrap(~group) +
+  theme_classic()
 ```
+The maximum and minimum distances were significantly different, with maximum distances being an average of 1276.8 meters greater (paired t-test, t=2.5385, df=33, p < 0.05).
 
-```{r}
-two_parents_meters %>%
-  gather(key=group, value=distance, max, min) %>% 
-  summary()
-```
+Both groups indicated dispersal distances greater than 
+
+However, this observed difference could result from false paternal relationships, and shorter relationships may be more likely to be correctly inferred may result in
+
 
 
 
