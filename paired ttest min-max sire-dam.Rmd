@@ -13,7 +13,7 @@ library(tidyverse)
 ```{r}
 pedigree
 
-two_parents = pedigree %>% 
+two_parents = final %>% 
   filter(!is.na(dam)) %>% 
   gather(key = parent_type, value=parent_id, sire, dam)
 
@@ -29,26 +29,37 @@ two_parents_meters
 ## okay now to get min and max
 ```{r}
 max_min_distance = two_parents_meters %>%
-  group_by(offspring_id) %>% 
-  summarize(max = max(distance),
-            min = min(distance))
+  group_by(, offspring_id) %>% 
+  summarize(Max = max(distance),
+            Min = min(distance))
 
 max_min_distance %>% summary()
+max_min_distance %>% arrange(desc(Min))
+```
+## graphing it
+```{r}
+max_min_distance %>%
+  gather(maxmin, distance, -offspring_id) %>% 
+  ggplot(aes(x = distance)) +
+  geom_histogram(fill="thistle2") +
+  theme_classic() +
+  facet_wrap(~maxmin) +
+  labs(x='Distance (m)', y='Count')
 ```
 
 
 ## ttest time
 ```{r}
-t.test(max_min_distance$max, max_min_distance$min, paired=T)
+t.test(max_min_distance$Max, max_min_distance$Min, paired=T)
 
 
 max_min_distance %>%
-  gather(key=group, value=distance, max, min) %>%
+  gather(key=group, value=distance, Max, Min) %>%
   group_by(group) %>% 
   summarize(mean = mean(distance), sd = sd(distance), median = median(distance))
 
 max_min_distance %>%
-  gather(key=group, value=distance, max, min) %>%
+  gather(key=group, value=distance, Max, Min) %>%
   ggplot(mapping=aes(x=distance, fill=group)) +
   geom_histogram() +
   facet_wrap(~group) +

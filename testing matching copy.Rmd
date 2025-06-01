@@ -1,0 +1,131 @@
+```{r}
+library(dplyr)
+
+# Example dataset
+df <- tibble(
+  sample_id = c("A1", "A2", "A3", "A4", "A5", "A6", "A7"),
+  locus1 = c(1, NA, 1, 1, 1, NA, 2),
+  locus2 = c(1, 1, 1, 1, NA, 1, 2),
+  locus3 = c(1, 1, 1, NA, 1, 1, 2),
+  locus4 = c(NA, 2, 1, 1, 1, 1, 2)
+)
+```
+
+
+```{r}
+# Function to check if two rows match ignoring NAs
+rows_match <- function(row1, row2, mintyped) {
+  #print(row1)
+  #print(row2)
+  common_values <- !is.na(row1) & !is.na(row2)  # Find comparable loci\
+  
+  # could choose either row here
+  num_typed = length(row1[common_values])
+  print(num_typed)
+
+  # print(length(common_values))
+  # returning false if numb er of min typed loci isn't met
+  if (num_typed < mintyped) {
+    print('not enough loci')
+    return(F)
+  }
+  
+  return(identical(row1[common_values], row2[common_values]))# Compare only those loci
+}
+```
+
+
+```{r}
+og_df <- df
+
+group_id <- 1
+
+
+for (i in seq_len(nrow(df))) {
+  for (j in seq_len(nrow(df))) {
+    if (i == j) next  # skip self
+    if (rows_match(df[i, 2:ncol(df)], df[j, 2:ncol(df)], 0)) {
+      # print(paste('comparing i: ', df[i, 1], ' and j: ', df[j,1]))
+      # print(paste(as.character(df[i, 2:ncol(df)]), as.character(df[j, 2:ncol(df)])))
+      
+      i_num_typed = nrow(gather(df[i, 2:ncol(df)], na.rm=T))
+      j_num_typed = nrow(gather(df[j, 2:ncol(df)], na.rm=T))
+      # print(paste('i = ', as.character(seq_len(i)), ' j = ', as.character(seq_len(j))))
+      if (i_num_typed > j_num_typed) {
+        # print(paste('selecting i: ', df[i, 1]))
+        df = df[-j,]
+      } else if (j_num_typed > i_num_typed) {
+        # print(paste('selecting j: ', df[j, 1]))
+        df = df[-i,]
+      # if they are equal, randomly choose one ?
+      } else {
+        print('equal numbers.. keeping both')
+      }
+    }
+  }
+}
+
+og_df
+df
+
+```
+create groups based off of each to deal with edge cases, IE A1 A3 and A4
+
+
+```{r}
+possible_clones = tibble(
+  Tree = character(),
+  num = integer()
+)
+
+some_num = 0
+
+names(possible_clones)
+
+df[df == 0] <- NA
+
+na_genotypes = head(genotypes)
+na_genotypes[na_genotypes == 0] <- NA
+
+na_genotypes
+
+
+for (i in seq_len(nrow(na_genotypes))) {
+  for (j in seq_len(nrow(na_genotypes))) {
+    if (i == j) next
+    
+    # print(paste('comparing i: ', na_genotypes[i, 1], ' and j: ', na_genotypes[j,1]))
+    # print(paste(as.character(na_genotypes[i, 2:ncol(na_genotypes)]), as.character(na_genotypes[j, 2:ncol(na_genotypes)])))
+    
+    if (rows_match(na_genotypes[i, 2:ncol(na_genotypes)], na_genotypes[j, 2:ncol(na_genotypes)], 6)) {
+      # print('found potential match')
+      for (k in seq_len(nrow(possible_clones))) {
+        if (na_genotypes[i,1] == possible_clones[k,1]) {
+          possible_clones[k,2] = possible_clones[k,2] + 1
+        } else {
+          possible_clones %>% add_row(Tree=na_genotypes[i,1], num=1)
+        }
+      }
+    }
+    
+  }
+}
+
+```
+
+
+
+
+
+```{r}
+possible_clones
+
+genotypes %>% mutate(duplicated = duplicated(genotypes %>% select(-Tree))) %>% filter(duplicated)
+```
+
+Get average distance between pairs of clones
+
+get average distances within each clonal cluster -- 
+
+
+

@@ -11,132 +11,184 @@ library(janitor)
 
 ## Reading in data from FRANz output
 FRANz output several files. The two data files we will be importing for analysis are 'pedigree.txt' and 'parentage.csv'. 'pedigree.txt' has the maximum likelihood inferred pedigree, while 'parentage.csv' contains maximum likelihood scores for all tested relationships. The code below imports the pedigree file.
+
+Let's make a function to make our code more streamlined, since we've got several pedigrees to read in.
 ```{r}
-# read_table uses any whitespace as delimiter
-pedigree = read_table('franz-files/pedigree.txt') %>% clean_names() %>% 
+read_pedigree = function(file_path) {
+  # read_table uses any whitespace as delimiter
+  read_table(file_path) %>%
+  clean_names() %>% 
   # added selfed column for ease later on with visualization and such
   mutate(selfed = (sire == dam) & !is.na(dam)) %>%
   filter(sire!='*') %>%
   mutate(dam=na_if(dam, '*'))
+}
 
-head(pedigree)
-dim(pedigree)
+# filtered for clones
+filtered_pedigree = read_pedigree('franz-files/clones-filtered/1/pedigree.txt')
+
+
+head(filtered_pedigree)
+dim(filtered_pedigree)
+
+filtered_pedigree
 ```
 Let's check the results across multiple runs of FRANz to see how different they are. We can expect some variability because of the nature of MCMC. We do this to make sure we have the parameters tuned in correctly, and that the results are accurate.
 ```{r}
-pedigree2 = read_table('franz-files/6min-100b-1/pedigree.txt') %>% clean_names() %>% 
-  # added selfed column for ease later on with visualization and such
-  mutate(selfed = (sire == dam) & !is.na(dam)) %>%
-  filter(sire!='*') %>%
-  mutate(dam=na_if(dam, '*'))
+filtered_pedigree_2 = read_pedigree('franz-files/clones-filtered/1/pedigree.txt')
+head(filtered_pedigree)
+head(filtered_pedigree_2)
 
-head(pedigree)
-head(pedigree2)
+filtered_pedigree
+filtered_pedigree_2
 
 # join the two datasets off of all columns so we see how many are remaining.
-inner_join(pedigree, pedigree2, by=join_by('id'=='id', 'sire'=='sire', 'dam'=='dam', 'selfed'=='selfed'))
+filtered_pedigree = inner_join(filtered_pedigree, filtered_pedigree_2, by=join_by('id'=='id', 'sire'=='sire', 'dam'=='dam', 'selfed'=='selfed'))
+filtered_pedigree
 
 # checking to makes sure that order of sire/dam doesnt matter here
-# inner_join(pedigree, pedigree2, by=join_by('id'=='id', 'sire'=='dam', 'dam'=='sire', 'selfed'=='selfed'))
+# inner_join(filtered_pedigree, filtered_pedigree_2, by=join_by('id'=='id', 'sire'=='dam', 'dam'=='sire', 'selfed'=='selfed'))
 
 ```
-After flipping the join to double check that the order doesn't matter, the only results that were remaining were those that were selfed, so this is not necessary.
+Looks like all 106 relationships are conserved across both runs in FRANz pedigree.
 
-Only [111] data points were conserved in the output across our two runs of franz pedigree.
+Let's also read in the results of our pedigree analysis without prior filtering for clones in genodive
+```{r}
+unfiltered_pedigree <- read_pedigree('franz-files/unfiltered/6min-100b-1/pedigree.txt')
+unfiltered_pedigree
+
+unfiltered_pedigree_2 <- read_pedigree('franz-files/unfiltered/6min-100b-2/pedigree.txt')
+unfiltered_pedigree_2
+```
 
 
 ```{r}
-pedigree = inner_join(pedigree, pedigree2, by=join_by('id'=='id', 'sire'=='sire', 'dam'=='dam', 'selfed'=='selfed'))
+unfiltered_pedigree_consensus = inner_join(unfiltered_pedigree, unfiltered_pedigree_2, by=join_by('id'=='id', 'sire'=='sire', 'dam'=='dam', 'selfed'=='selfed'))
+unfiltered_pedigree_consensus
 ```
+All 167 offspring's relationships are conserved across the runs of FRANz pedigree for the runs without prior filtering for clones as well.
 
 
-
-Now, we have to import the parentage file and filter by LOD scores greater than 2. We accomplish this by filtering all the parentage entries to those with LOD scores greater than 2, and then doing an inner join with our pedigree data using both parents as the key.
+Now, for both the unfiltered and filtered runs, we have to import the parentage file and filter by LOD scores greater than 2. We accomplish this by filtering all the parentage entries to those with LOD scores greater than 2, and then doing an inner join with our pedigree data using both parents as the key. We will arbitrarily choose parentage files from the first run for each of the sets of data.
 
 ```{r}
 # # reading in parentage lods to rule out any pedigree relationships with bad LOD scores, if they exist
 
 # reading in parentage lods to rule out any pedigree relationships with bad LOD scores, if they exist
-parentage_lods <- read_csv("franz-files/parentage.csv") %>% clean_names()
-parentage_lods
+# parentage_lods <- read_csv("franz-files/parentage.csv") %>% clean_names()
+filtered_parentage_lods <- read_csv("franz-files/clones-filtered/1/parentage.csv") %>% clean_names()
+
+filtered_parentage_lods
 
 
-filtered_parentage_lods <- parentage_lods %>%
+thresholded_filtered_parentage_lods <- filtered_parentage_lods %>%
   filter(lod > 2)
 
-nrow(filtered_parentage_lods)
+nrow(thresholded_filtered_parentage_lods)
+```
+and for the unfiltered data:
+```{r}
+unfiltered_parentage_lods <- read_csv("franz-files/unfiltered/6min-100b-1/parentage.csv") %>% clean_names()
+
+unfiltered_parentage_lods
+
+thresholded_unfiltered_parentage_lods <- unfiltered_parentage_lods %>%
+  filter(lod > 2)
+
+nrow(thresholded_unfiltered_parentage_lods)
 ```
 
 
-
+Now we have to join the correct relationships from our parentage to our pedigree for both sets of data.
 ```{r}
 # joining parentage and pedigree to get pedigree relationships with acceptable LOD scores
-head(pedigree)
+head(filtered_pedigree)
 
-inner_join(pedigree, filtered_parentage_lods, by = c("id" = "offspring", "sire" = "parent_1", "dam" = "parent_2")) %>%
+thresholded_filtered = inner_join(filtered_pedigree, thresholded_filtered_parentage_lods, by = c("id" = "offspring", "sire" = "parent_1", "dam" = "parent_2")) %>%
   rename('Tree' = 'id') %>% 
-  dim()
-
-filtered_franz <- inner_join(pedigree, filtered_parentage_lods, by = c("id" = "offspring", "sire" = "parent_1", "dam" = "parent_2")) %>%
-  rename('Tree' = 'id') %>% 
-  # making parent type sire or dam for now, but could be overwritten with max, min, selfed, etc
-  gather(key='parent_type', value='parent_id', sire, dam)
-
-head(filtered_franz)
-nrow(filtered_franz)
+  mutate(potential_clones_filtered = T)
+thresholded_filtered
 ```
+None of the 106 relationships from the clone filtered data set had too low of LOD scores.. let's check the unfiltered dataset
+
+```{r}
+thresholded_unfiltered = inner_join(unfiltered_pedigree, thresholded_unfiltered_parentage_lods, by = c("id" = "offspring", "sire" = "parent_1", "dam" = "parent_2")) %>%
+  rename('Tree' = 'id') %>% 
+  mutate(potential_clones_filtered = F)
+thresholded_unfiltered
+```
+Looks like 4 were filtered out because of LOD scores, leaving us with 163 inferred relationships with potential clones filtered out.
+
+
+Now let's combine these into one data set to make it easier to visualize and analyze.
+```{r}
+final_pedigree = thresholded_filtered
+
+for (i in 1:nrow(thresholded_unfiltered)) {
+  final_pedigree = final_pedigree %>% add_row(thresholded_unfiltered[i,])
+}
+
+final_pedigree = final_pedigree %>%
+  gather(key='parent_type', value='parent_id', sire, dam) %>%
+  select(Tree, parent_id, selfed, potential_clones_filtered, lod) %>% 
+  distinct() %>% # need this so we don't have duplicated rows with selfed trees
+  filter(!is.na(parent_id))
+
+summary(final_pedigree)
+```
+
+
 ## Joining franz data to coord data
 Now we have to join our coordinates file to our filtered pedigree data.
 ```{r}
 # removing na parent matches then doing an inner join off of parent id
-
-franz_coords <- inner_join(filtered_franz, coords, by=c("parent_id" = "Tree")) %>%
+pedigree_coords <- inner_join(final_pedigree, coords, by=c("parent_id" = "Tree")) %>%
   rename(parent_x = X, parent_y = Y) %>%
   inner_join(y=coords, by="Tree") %>%
   rename(offspring_x = X, offspring_y = Y) %>% 
-  select(Tree, parent_id, parent_x, parent_y, offspring_x, offspring_y, selfed) %>% 
+  select(Tree, parent_id, parent_x, parent_y, offspring_x, offspring_y, selfed, potential_clones_filtered) %>% 
   distinct()
 
 
-names(franz_coords)
-head(franz_coords)
-nrow(franz_coords)
+names(pedigree_coords)
+head(pedigree_coords)
+nrow(pedigree_coords)
 
-franz_coords
-
-?inner_join
-?gather
-
-summary(franz_coords)
+summary(pedigree_coords)
+pedigree_coords %>% filter(is.na(offspring_y))
 ```
+Note there are 178 unfiltered relationships and 113 filtered relationships. This is because we have some offspring with multiple parents inferred, so we have increased from 163 unfiltered offspring and 106 filtered offspring.
+
+
 ## Mapping the dispersal
 
 Now, let's make some maps to visualize our data. This will be accomplished using ggmaps. First, we have to set our boundary box for the map.
 ```{r}
-map_lon_center = (max(franz_coords$offspring_x)+min(franz_coords$offspring_x))/2
-map_lat_center = (max(franz_coords$offspring_y)+min(franz_coords$offspring_y))/2
+map_lon_center = (max(pedigree_coords$offspring_x)+min(pedigree_coords$offspring_x))/2
+map_lat_center = (max(pedigree_coords$offspring_y)+min(pedigree_coords$offspring_y))/2
 
 map_center = c(
-  lon = (max(franz_coords$offspring_x)+min(franz_coords$offspring_x))/2,
-  lat = (max(franz_coords$offspring_y)+min(franz_coords$offspring_y))/2
+  lon = (max(pedigree_coords$offspring_x)+min(pedigree_coords$offspring_x))/2,
+  lat = (max(pedigree_coords$offspring_y)+min(pedigree_coords$offspring_y))/2
   )
 ```
 
 Then we build the map itself
 ```{r}
-franz_map_area <- get_googlemap(center = c(lon = map_lon_center, lat = map_lat_center),
-  zoom = 13,
-  maptype = 'terrain')
+# franz_map_area <- get_googlemap(center = c(lon = map_lon_center, lat = map_lat_center),
+#  zoom = 13,
+#  maptype = 'terrain')
 
-ggmap(franz_map_area) +
+ggmap(map_area) +
   # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
-  geom_segment(franz_coords,
-               mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y),
+  geom_segment(pedigree_coords,
+               mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=potential_clones_filtered),
                arrow = arrow(
                  length = unit(0.01, "npc"),
                  type = "closed",
                  angle = 20),
-               size=1)
+               size=1) +
+  facet_wrap(~potential_clones_filtered)
 ```
 
 ## Distance analysis
@@ -144,16 +196,22 @@ Now its time to get some distances out of this data.
 In order to make the distance calculation library work properly, we have to do some reformatting of the data here. This isn't the cleanest way to do things, but it works. Here we populate distances_m with distances using geosphere. This meant making new columns containing coordinates as vectors, and then parsing this out when populating the tibble to calculate the distances with geosphere.
 Here we create the new column.
 ```{r}
-franz_distances <- franz_coords %>%
+franz_distances <- pedigree_coords %>%
   mutate(offspring_coord_vector=paste(as.character(offspring_x), as.character(offspring_y))) %>%
   mutate(parent_coord_vector=paste(as.character(parent_x), as.character(parent_y)))
+
+franz_distances
 
 ```
 
 Now we parse them out using string splitting, and then calculate the distances.
 ```{r}
 # dummy row for data initialization that will be deleted later
-distances_m = tibble(offspring_id = "some_id", parent_id = "other_id", distance = 0)
+distances_m = tibble(
+  offspring_id = character(),
+  parent_id = character(),
+  distance = numeric()
+  )
 distances_m
 
 # for loop to populate the tibble
@@ -166,17 +224,22 @@ for (i in 1:(nrow(franz_distances)) ){
     )
 }
 
-distances_m <- distances_m %>% filter(offspring_id != "some_id")
+distances_m <- distances_m %>% arrange(desc(distance)) %>% distinct()
 
 head(distances_m)
+distances_m
 ```
 
 Now we add the distances calculation to a new table with all of the data.
 ```{r}
 # now lets join this onto franz_filtered
-trees_distances <- inner_join(distances_m, franz_coords, by = c("offspring_id"="Tree", 
+trees_distances <- inner_join(distances_m, pedigree_coords, by = c("offspring_id"="Tree", 
                                                "parent_id"="parent_id"))
-head(trees_distances)
+summary(trees_distances)
+
+# can make it easier for some stats
+filtered_distances = trees_distances %>% filter(potential_clones_filtered)
+unfiltered_distances = trees_distances %>% filter(!potential_clones_filtered)
 
 # todo: can use trees_distances to run linear regression if we want to analyze SDD in the context of lat/longitude of parent
 
@@ -191,6 +254,7 @@ Now its time to visualize this data. We'll be doing further analysis after incor
 Let's start with some summary statistics.
 ```{r}
 trees_distances %>%
+  group_by(potential_clones_filtered) %>% 
   summarize(median_d = median(distance),
             mean_d = mean(distance),
             sd_d = sd(distance),
@@ -202,66 +266,89 @@ And now some histograms, to better understand the distribution.
 ```{r}
 # histograms
 trees_distances %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
-  geom_histogram(fill="thistle2", binwidth=200) +
+  ggplot(aes(x=distance, fill=potential_clones_filtered)) +
+  geom_histogram(binwidth=200) +
   # geom_density(color = "red") +
   theme_classic() +
-  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
+  labs(x='Distance (m)', y='Density') +
+  facet_wrap(~potential_clones_filtered, ncol=1)
 ```
 We're seeing several potential long distance dispersal events. Assuming these are correctly inferred parent-offspring relationships, we don't know if these are the result of pollination or dispersal. Let's filter this so we are only looking at the selfed offspring, in which case dispersal and pollination would have taken place.
 ```{r}
 trees_distances %>%
   filter(selfed)%>% 
-  ggplot(aes(x = distance,y=after_stat(density))) +
-  geom_histogram(fill="thistle2") +
+  ggplot(aes(x = distance, fill=potential_clones_filtered)) +
+  geom_histogram() +
   # geom_density(color = "red") +
   theme_classic() +
-  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
+  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance') +
+  facet_wrap(~potential_clones_filtered, ncol=1)
 ```
-These instances of selfing are less than
+There are only 2 instances of selfing remaining after filtering for potential clones, seen below.
+```{r}
+trees_distances %>% 
+  filter(selfed == T, potential_clones_filtered == T)
+```
+and median for no potential clones filtered
+```{r}
+trees_distances %>% 
+  filter(selfed == T) %>%
+  group_by(potential_clones_filtered) %>% 
+  summarize(median = median(distance), mean = mean(distance), sd = sd(distance))
+```
 
-[TODO: remove/change data ranges for below graphs]
-Because there is an outlier over 10000 meters, let's look at another histogram with that outlier removed
+As such, let's recreate the graph for the sake of the manuscript.
 ```{r}
-# filter out the super big ones for clarity in visualization
 trees_distances %>%
-  filter(distance < 2500, distance != 0) %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
-  geom_histogram(fill="thistle2", binwidth=20) +
+  filter(selfed, !potential_clones_filtered) %>% 
+  ggplot(aes(x = distance, fill=potential_clones_filtered)) +
+  geom_histogram(binwidth = 2) +
   # geom_density(color = "red") +
   theme_classic() +
-  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
-```
-With all of the scattered results over 500 meters, lets also look at the results below 500m
-```{r}
-# filter out the super big ones for clarity in visualization
+  guides(fill='none') +
+  scale_y_continuous(breaks = c(0, 2, 4, 6, 8, 10, 12)) +
+  # ylim(0,13) +
+  labs(x='Distance (m)', y='Count')
+
 trees_distances %>%
-  filter(distance < 500, distance != 0) %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
-  geom_histogram(fill="thistle2", binwidth=20) +
-  geom_density(color = "red") +
-  theme_classic() +
-  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')
+  filter(selfed, !potential_clones_filtered) %>% 
+  summary()
 ```
+
+
 
 [TODO: move this into a results section?]
 Now, let's try to understand this data a bit better. We have inferred the most likely pedigree, and ruled out those relationships with LOD scores under 2, but we can't be sure that these relationships are the result of pollination or seed dispersal. As such, let's examine the maximum and minimum distance of every inferred distance to see if there's a significant difference.
 ```{r}
 trees_distances
 
+
+get_min_distances <- function(distances_ds){
+  distances_ds %>%
+  group_by(offspring_id) %>%
+  filter(selfed == F) %>% 
+  summarize(offspring_id, parent_id, distance = min(distance), parent_x, parent_y, offspring_x, offspring_y, selfed, potential_clones_filtered)
+}
+
+get_max_distances <- function(distances_ds){
+  distances_ds %>%
+  group_by(offspring_id) %>%
+  filter(selfed == F) %>% 
+  summarize(offspring_id, parent_id, distance = max(distance), parent_x, parent_y, offspring_x, offspring_y, selfed, potential_clones_filtered)
+}
+
 # NEW GRAPHS FOR MAX/MIN VALUES
 min_trees_distances <-
   trees_distances %>%
   group_by(offspring_id) %>%
   filter(selfed == F) %>% 
-  summarize(offspring_id, parent_id, distance = min(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+  summarize(offspring_id, parent_id, distance = min(distance), parent_x, parent_y, offspring_x, offspring_y, selfed, potential_clones_filtered)
 
 summary(min_trees_distances)
 
 min_trees_distances %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
+  ggplot(aes(x = distance,fill = clones_)) +
   geom_histogram(fill="thistle2", binwidth=200) +
-  geom_density(color = "red") +
   theme_classic() +
   labs(x='Minimum distances (m)', y='Density', title='Distribution of estimated dispersal distance minima')
 
@@ -277,9 +364,8 @@ max_trees_distances <-
 summary(max_trees_distances)
 
 max_trees_distances %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
+  ggplot(aes(x = distance)) +
   geom_histogram(fill="thistle2", binwidth=200) +
-  geom_density(color = "red") +
   theme_classic() +
   labs(x='Maximum distances (m)', y='Density', title='Distribution of estimated dispersal distance maxima')
 
@@ -289,54 +375,171 @@ t.test(min_trees_distances$distance, max_trees_distances$distance)
 
 ```
 
-However, this isn't checking to only include trees with two parents... so let's do that
+However, this isn't checking to only include trees with two parents, and hasn't broken it down by filtering for clones, so let's do that
+
+### filtered for clones
 ```{r}
-summary(trees_distances)
-two_parents_trees = trees_distances %>% 
+two_parents_filtered = filtered_distances %>% 
   filter(duplicated(offspring_id)) %>% 
   select(offspring_id)
+two_parents_filtered
 
-two_parents_distances = inner_join(trees_distances, two_parents_trees)
+two_parents_filtered = inner_join(filtered_distances, two_parents_filtered)
+two_parents_filtered
+```
 
-min_trees_distances <-
-  two_parents_distances %>%
-  group_by(offspring_id) %>%
-  filter(selfed == F) %>% 
-  summarize(offspring_id, parent_id, distance = min(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+minimums
+```{r}
+min_trees_distances_filtered <- get_min_distances(two_parents_filtered)
+min_trees_distances_filtered
 
+summary(min_trees_distances_filtered)
 
-summary(min_trees_distances)
-
-min_trees_distances %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
+min_trees_distances_filtered %>%
+  ggplot(aes(x = distance)) +
   geom_histogram(fill="thistle2") +
   theme_classic() +
   labs(x='Minimum distances (m)', y='Density', title='Distribution of estimated dispersal distance minima')
+```
 
-
+maximums
+```{r}
 # now max distances
 
-max_trees_distances <-
-  two_parents_distances %>%
-  group_by(offspring_id) %>%
-  filter(selfed == F) %>% 
-  summarize(offspring_id, parent_id, distance = max(distance), parent_x, parent_y, offspring_x, offspring_y, selfed)
+max_trees_distances_filtered <- get_max_distances(two_parents_filtered)
 
-summary(max_trees_distances)
+summary(max_trees_distances_filtered)
 
-max_trees_distances %>%
+max_trees_distances_filtered %>%
   ggplot(aes(x = distance,y=after_stat(density))) +
   geom_histogram(fill="thistle2") +
   theme_classic() +
   labs(x='Maximum distances (m)', y='Density', title='Distribution of estimated dispersal distance maxima')
-
-t.test(min_trees_distances$distance, max_trees_distances$distance)
 ```
 
 
+```{r}
+t.test(min_trees_distances_filtered$distance, max_trees_distances_filtered$distance, paired=T)
+```
+
+### not filtered for clones
+```{r}
+two_parents_unfiltered = unfiltered_distances %>% 
+  filter(duplicated(offspring_id)) %>% 
+  select(offspring_id)
+two_parents_unfiltered
+
+two_parents_unfiltered = inner_join(unfiltered_distances, two_parents_unfiltered)
+two_parents_unfiltered
+```
+
+minimums
+```{r}
+min_trees_distances_unfiltered <- get_min_distances(two_parents_unfiltered)
+min_trees_distances_unfiltered
+
+summary(min_trees_distances_unfiltered)
+
+min_trees_distances_unfiltered %>%
+  ggplot(aes(x = distance)) +
+  geom_histogram(fill="thistle2") +
+  theme_classic() +
+  labs(x='Minimum distances (m)', y='Density', title='Distribution of estimated dispersal distance minima')
+```
+
+maximums
+```{r}
+# now max distances
+
+max_trees_distances_unfiltered <- get_max_distances(two_parents_unfiltered)
+
+summary(max_trees_distances_unfiltered)
+
+max_trees_distances_unfiltered %>%
+  ggplot(aes(x = distance,y=after_stat(density))) +
+  geom_histogram(fill="thistle2") +
+  theme_classic() +
+  labs(x='Maximum distances (m)', y='Density', title='Distribution of estimated dispersal distance maxima')
+```
 
 
+```{r}
+t.test(min_trees_distances_unfiltered$distance, max_trees_distances_unfiltered$distance, paired=T)
+```
 
+Let's make a version of this data with everything together for the sake of graphing it.
+```{r}
+two_parents_all = two_parents_filtered
+
+two_parents_unfiltered
+
+for (i in 1:nrow(two_parents_unfiltered)) {
+  two_parents_all = two_parents_all %>% add_row(two_parents_unfiltered[i,])
+}
+
+two_parents_all
+
+max_min_distance = two_parents_all %>%
+  group_by(potential_clones_filtered, offspring_id) %>% 
+  summarize(Max = max(distance),
+            Min = min(distance))
+
+max_min_distance %>% summary()
+max_min_distance %>% arrange(desc(Min))
+
+# now gathering again for tidyverse formatting
+max_min_distance = max_min_distance %>%
+    gather(key = max_min, value=distance, Max, Min)
+```
+
+```{r}
+max_min_distance %>%
+  ggplot(aes(x=distance, y=after_stat(density))) +
+  geom_histogram(fill='thistle2') +
+  geom_density(color='red') +
+  theme_classic() +
+  facet_grid(cols=vars(potential_clones_filtered), rows=vars(max_min))
+```
+Reformatting this so min is on top and we only show the unfiltered
+```{r}
+max_min_distance %>%
+  filter(!potential_clones_filtered) %>% 
+  mutate(max_min = factor(max_min, levels = c('Min', 'Max'))) %>% 
+  ggplot(aes(x=distance, y=after_stat(density))) +
+  # todo: find better colors
+  geom_histogram(fill='thistle2') +
+  geom_density(color='red') +
+  theme_classic() +
+  facet_wrap(~max_min, ncol = 1) +
+  labs(x='Distance (m)', y = 'Density')
+```
+
+
+```{r}
+max_min_distance %>%
+  ggplot(aes(x=distance, y=after_stat(density))) +
+  geom_histogram(fill='#900') +
+  geom_density(color='#600') +
+  theme_classic() +
+  facet_grid(cols=vars(potential_clones_filtered), rows=vars(max_min))
+```
+
+```{r}
+max_min_distance %>%
+  group_by(potential_clones_filtered, max_min) %>% 
+  summarize(mean_distance = mean(distance), median=median(distance), n=n())
+```
+Medians had a difference of 421.8093 for not filtering potential clones, 290.7369 for filtering potential clones.
+
+Because assumptions for the t test are not met, we instead can do the wilcoxon signed rank test.
+```{r}
+wilcox.test(min_trees_distances_filtered$distance, max_trees_distances_filtered$distance, paired=T)
+```
+
+
+```{r}
+wilcox.test(min_trees_distances_unfiltered$distance, max_trees_distances_unfiltered$distance, paired=T)
+```
 
 
 

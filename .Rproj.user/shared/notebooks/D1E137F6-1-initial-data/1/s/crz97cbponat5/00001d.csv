@@ -1,8 +1,0 @@
-"0","geno_coords <- inner_join(genotypes, coords, by = c(""Tree"" = ""Tree""))"
-"0","dim(geno_coords)"
-"1","[1]"
-"1"," 1562"
-"1","   31"
-"1","
-"
-"0","head(geno_coords)"

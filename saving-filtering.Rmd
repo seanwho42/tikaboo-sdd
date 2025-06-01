@@ -1,0 +1,29 @@
+For these duplicated trees, we want to pick the row that has more genetic data available. Some IDs show up more than twice, so we've got to account for that.
+First we have to prepare our data for this with some temporary modifications.
+```{r}
+genotypes = genotypes %>% mutate(unique_id = 1:length(genotypes$Tree))
+na_genotypes = genotypes[genotypes == 0] <- NA
+```
+
+Now we can filter our data.
+```{r}
+for (tree_id in duplicated_genotypes_trees$Tree) {
+  print(tree_id)
+  ds = genotypes %>% filter(Tree == tree_id)
+
+  max_typed = 0
+  for (i in 1:length(ds$Tree)) {
+    # note that this will always be greater than 0 because we've filtered out
+    # all trees without genetic data, and there are additional columns included
+    # in num_typed
+    num_typed = nrow(gather(ds[i, 2:ncol(ds)], na.rm=T))
+    print(num_typed)
+    if (num_typed > max_typed) {
+      retained_id = ds[i,]$unique_id
+    }
+  }
+  print(ds)
+}
+
+genotypes
+```

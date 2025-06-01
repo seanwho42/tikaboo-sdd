@@ -1,3 +1,0 @@
-"0","coords %>%"
-"0","  filter((Tree %in% duplicated_coords_trees$Tree)) %>% "
-"0","  group_by(Tree)"

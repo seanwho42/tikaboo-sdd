@@ -1,7 +1,0 @@
-"0","map_lon_center = (max(franz_coords$offspring_x)+min(franz_coords$offspring_x))/2"
-"0","map_lat_center = (max(franz_coords$offspring_y)+min(franz_coords$offspring_y))/2"
-"0",""
-"0","map_center = c("
-"0","  lon = (max(franz_coords$offspring_x)+min(franz_coords$offspring_x))/2,"
-"0","  lat = (max(franz_coords$offspring_y)+min(franz_coords$offspring_y))/2"
-"0","  )"

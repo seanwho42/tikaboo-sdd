@@ -7,6 +7,7 @@ library(tidyverse)
 library(janitor)
 library(readxl)
 library(ggmap)
+library(poppr)
 ```
 
 ## Reading in data
@@ -104,8 +105,10 @@ length(genotypes$Tree %>% unique())
 This confirms there are some duplicates of tree ids here. We can find these simply enough.
 ```{r}
 duplicated_genotypes_trees = genotypes %>% filter(duplicated(Tree)) %>% select(Tree)
+
 duplicated_genotypes_trees
 ```
+
 
 Let's cut these trees out from our dataset.
 ```{r}
@@ -139,6 +142,48 @@ Manually calculating the differences in distances across duplicates, the worst w
 coords <- coords %>% filter(!(Tree %in% duplicated_coords_trees$Tree))
 dim(coords)
 ```
+This looking great.. however, we can see that some trees are missing data here.
+```{r}
+genotypes %>% arrange(genotypes %>% select(-Tree))
+```
+Let's remove these from our dataset. There's probably a better way to do conditional filtering but this is ther first thing I thought of that didn't require listing all of the columns.
+```{r}
+# grouping by tree to find maximum values, and then filtering to find all the trees where that is only 0, meaning they have no genetic data
+missing_genotypes <- genotypes %>% 
+  gather(locus, value, -Tree) %>%
+  group_by(Tree) %>% 
+  summarize(max = max(value)) %>% 
+  filter(max == 0) %>%
+  select(-max)
+missing_genotypes
+```
+Now that we've found the trees with missing data, let's cut them
+
+```{r}
+# filtering out those with ids in the tibble of those missing genotypes
+
+genotypes <- genotypes %>% filter(!(Tree %in% missing_genotypes$Tree))
+dim(genotypes)
+```
+
+Now we've got to do some population genetic analysis to weed out potential clones. We can git rid of some clones by checking for completely identical genotypes, but some are missing data, and we want to do a bit more in-depth analysis. We're going to do this with the R package poppr, but to do this we have to create a new CSV file and format it for the package to read it properly.
+```{r}
+# checking to see how many unique genotypes
+genotypes %>% select(-Tree) %>% unique()
+
+write_csv(genotypes, 'poppr_genotypes.csv')
+```
+
+
+Now we have to add formatting per instructions on this page https://grunwaldlab.github.io/Population_Genetics_in_R/Data_Preparation.html. The complete file is in ```'data-files/poppr_genotypes.csv'```
+
+```{r}
+poppr_genotypes = read.genalex('data-files/poppr_genotypes.csv')
+```
+
+
+
+
 
 Now we redefine the geno_coords data.
 ```{r}
@@ -146,7 +191,7 @@ geno_coords <- inner_join(genotypes, coords, by = c("Tree" = "Tree"))
 dim(geno_coords)
 head(geno_coords)
 ```
-Now we have coordinates and microsatellite data ready for further analysis.
+It looks like there were 11 samples which had missing/filtered out coordinate data. Now we have coordinates and microsatellite data ready for further analysis.
 
 NOTE: in order for the ggmaps functions below to function, you will need to register an API key in the R console using ```register_google("API_KEY")```.
 This sort of key is a static map key [TODO: hyperlink to the google api page], which has free unlimited usages. Still, best security practices dictate not sharing API keys.
@@ -159,15 +204,16 @@ Now, let's make some maps to visualize our data. This will be accomplished using
 map_lon_center = (max(geno_coords$X)+min(geno_coords$X))/2
 map_lat_center = (max(geno_coords$Y)+min(geno_coords$Y))/2
 
+# map_lat_center = 37.53
+
+
 ```
 
 Then we build the map itself
 ```{r}
 map_area <- get_googlemap(center = c(lon = map_lon_center, lat = map_lat_center),
-  zoom = 12,
-  maptype = 'terrain')
-
-ggmap(franz_map_area)
+ zoom = 12,
+ maptype = 'terrain')
 
 ggmap(map_area) +
   # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +

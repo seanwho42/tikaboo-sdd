@@ -1,2 +1,0 @@
-"0","duplicated_coords_trees <- coords %>% filter(duplicated(Tree)) %>% select(Tree)"
-"0","duplicated_coords_trees"

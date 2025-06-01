@@ -77,16 +77,69 @@ structure %>% filter(substr(tree, 1, 2) == "TV") %>% filter(pop == 2)
 ```
 This means that we know these aren't part of our initial data even before we join the two datasets together. As such, we know that these aren't relevant to our data.
 
+## Joining coordinate data
+Let's join this to geno_coords so we can visualize the distribution of each species.
+```{r}
+structure_coords <- inner_join(geno_coords, structure, by=join_by('Tree'=='tree'))
+coords_species = stucture_coords %>% 
+  mutate(
+    species = factor(case_when(
+      percent_brev_ave < 0.25 ~ 'y. Jaegeriana',
+      percent_brev_ave > 0.75 ~ 'y. Brevifolia',
+      .default = 'Hybrid'
+    ), levels = c('y. Jaegeriana', 'Hybrid', 'y. Brevifolia'))
+  )
+
+coords_species %>% 
+  group_by(species) %>% 
+  summarize(n=n())
+```
+
+
+```{r}
+ggmap(map_area) +
+  geom_point(structure_coords,
+             mapping = aes(x=X, y=Y, color=percent_brev_ave),
+             size=0.5)
+```
+
+
+```{r}
+species_palette <- (c('forestgreen', 'gold', '#6496c8'))
+
+ggmap(map_area) +
+  geom_point(coords_species,
+             mapping = aes(x=X, y=Y, color=species),
+             size=0.5) +
+  scale_color_discrete(type=species_palette)
+
+```
+```{r}
+ggmap(map_area) +
+  geom_bin_2d(coords_species,
+             mapping = aes(x=X, y=Y),
+             size=0.5) +
+  facet_wrap(~species)
+```
+```{r}
+ggmap(map_area) +
+  geom_density2d(coords_species,
+             mapping = aes(x=X, y=Y),
+             size=0.5) +
+  facet_wrap(~species)
+```
+
 ## Joining pedigree data
 For our analysis, we will be joining off of our offsprings, and thus using the offspring % brev for our analysis.
 [TODO: elaborate on this?]
 ```{r}
 # inner join to cut samples which don't correspond
-structure_pedigree = inner_join(trees_distances, structure, by=join_by('offspring_id'=='tree')) %>%
+structure_pedigree = left_join(trees_distances, structure, by=join_by('offspring_id'=='tree')) %>%
   select(-pop) %>% 
   mutate(off_percent_brev=percent_brev_ave)
 
 summary(structure_pedigree)
+structure_pedigree %>% filter(is.na(off_percent_brev))
 ```
 
 [TODO: add in parent percentage??]
@@ -101,6 +154,21 @@ summary(structure_pedigree)
 
 #summary(structure_pedigree)
 ```
+
+```{r}
+# ggmap(map_area) +
+#   # geom_point(inner_join(of), mapping=aes(offspring_x, offspring_y, color=off_percent_brev), size = 0.5) +
+#   # geom_segment(structure_pedigree,
+#   #              mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=off_percent_brev),
+#   #              arrow = arrow(
+#   #                length = unit(0.01, "npc"),
+#   #                type = "closed",
+#   #                angle = 20),
+#   #              size=0.2) +
+#   labs(color='Offspring % brevifolia') +
+#   theme_classic()
+```
+
 
 
 

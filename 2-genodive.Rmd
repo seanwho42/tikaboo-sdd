@@ -1,0 +1,471 @@
+```{r}
+library(geosphere)
+```
+
+# 2 - hardy weinberg equilibrium
+One of the assumptions for our analysis is that the alleles at each loci are at Hardy-Weinberg equillibrium. We can check this using Genodive.
+
+[TODO: fix formatting so ids starting with a number don't get read incorrectly]
+
+## Genodive formatting
+We have to change the formatting of our data in order to read it into Genodive. This means combining alleles 1 and 2 for each locus, and making each allele 3 digits long.
+```{r}
+gdv_trees <- geno_coords %>%
+  mutate(
+    pop = 1,
+    Tree = paste('id-', Tree, sep=''), # adding this because some ids start with integers, which isn't accepted by genodive
+    yb01 = paste(str_pad(`yb01 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb01 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb05 = paste(str_pad(`yb05 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb05 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb15 = paste(str_pad(`yb15 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb15 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb21 = paste(str_pad(`yb21 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb21 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb04 = paste(str_pad(`yb04 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb04 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb06 = paste(str_pad(`yb06 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb06 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb12 = paste(str_pad(`yb12 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb12 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb13 = paste(str_pad(`yb13 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb13 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    fil36 = paste(str_pad(`fil36 Allele#1`, width=3, pad="0"),
+                  str_pad(`fil36 Allele#2`, width=3, pad="0"),
+                  sep=""),
+    yb08 = paste(str_pad(`yb08 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb08 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb20 = paste(str_pad(`yb20 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb20 Allele#2`, width=3, pad="0"),
+                 sep=""),
+    yb22 = paste(str_pad(`yb22 Allele#1`, width=3, pad="0"),
+                 str_pad(`yb22 Allele#2`, width=3, pad="0"),
+                 sep="")
+  ) %>%
+  select("pop","Tree","yb01","yb05","yb15","yb21","yb04","yb06","yb12","yb13","fil36","yb08","yb20","yb22")
+```
+
+Now we write this to a TSV.
+```{r}
+head(gdv_trees)
+write_tsv(gdv_trees, "data-files/gdv-trees.tsv")
+```
+For formatting, we need to know how many entries we have.
+```{r}
+dim(gdv_trees)
+```
+
+Now we save a copy of our tsv, 'data-files/gdv-trees.tsv', with the following lines added before our headers:
+```
+tikaboo trees microsatellite genotypes
+1557	1	12	2	3
+tikaboo-trees
+```
+Description (taken/summarized from the genodive documentation)
+Line 1: Comments
+Line 2: Second line, five numbers separated by tabs:
+ - The total number of individuals
+ - The number of populations
+ - The number of loci
+ - The maximum ploidy levels used
+ - The number of digits used to code a single allele
+Line 3: Population name
+
+[TODO: elaborate on the results here?]
+
+## Genodive results
+
+Now let's calculate HWE. This is done in Genodive 3.06 using Nei's heterozygosity-based Gis statistic with 999 permutations, with Gis values saved under 'data-files/gis-gdv-trees'
+```{r}
+# gathering just to increase readability
+# read_tsv('data-files/hwe-gdv-trees.gdv') %>% select(-`Obs.`) %>% gather()
+```
+
+
+Let's also check the allele frequencies in Genodive. Our HWE and allele frequency results are saved under 'GenoDive Results.gdv'.
+
+[TODO: these deviations, though significant, are not large at many loci? What values constitute a large deviation?]
+[TODO: cite previous literature here -- nonrandom mating at hybrid region etc]
+Looking at these results, we see significant deviations from Hardy-Weinberg equilibrium across all loci. This is expected, as we are at a hybrid zone, and as such there is non-random mating. Additionally, the samples collected are spatially clustered, and thus more likely to be related. It is also unavoidable, as some motivation for this study is to study this hybrid zone to see if hybrids may prove to be important for the survival of *Y. brevifolia* and *Y. jaegeriana*.
+
+Additionally, we see high null allele rations at two of our loci, with 29.2% null alleles at yb05 and 38.3% null alleles at yb20. As such, these two loci are excluded from any further analyses.
+
+
+
+## Finding clones
+[show finding clones from completely identical data first]
+
+CLONES
+```{r}
+read_delim('data-files/smouse-peakall-distances.gdv') %>% head()
+sp_distances = read_delim('data-files/smouse-peakall-distances.gdv') %>%
+  rename(s1 = "Obs.") %>%
+  # making data easier to handle
+  gather(-s1, key=s2, value=distance) %>% 
+  # filtering out comparing to self
+  filter(s1 != s2) %>%
+  # have to get rid of the 'id-' at the start, so using regex
+  mutate(
+    s1 = gsub('(^id\\-)', '', s1),
+    s2 = gsub('(^id\\-)', '', s2),
+    ) %>%
+  arrange(s1)
+
+sp_distances
+
+# now find distances of 0
+thresholded_distances = sp_distances %>% 
+  filter(distance < 2) %>%
+  select(-distance) %>% 
+  mutate(cluster_label='unassigned')
+
+thresholded_distances
+dim(thresholded_distances %>% unique())
+# no duplicates here
+
+sp_distances %>% arrange(distance)
+sp_distances %>% summary()
+sp_distances %>% filter(distance < 2.5) %>%
+  ggplot(aes(x=distance)) +
+  geom_histogram()
+```
+we evalkuated the genetic distance by genodive to determine the distance at which distances differed at at least one allele, and found that that was 2
+### grouping clone clusters
+```{r}
+# saving since this works to filter down to a group nearly
+
+# doesn't work right at all
+for (i in seq_len(nrow(thresholded_distances))) {
+  i_s1 = thresholded_distances[i,1]
+  i_s2 = thresholded_distances[i,2]
+  # now check against new tibble to see if we've written reverse of it yet
+  for (j in seq_len(nrow(thresholded_distances))) {
+    j_s1 = thresholded_distances[j,1]
+    j_s2 = thresholded_distances[j,2]
+    j_cluster = thresholded_distances[j,3]
+    if (i_s1 == j_s1 & j_cluster == 'unassigned') {
+      # initialize the cluster by naming it after the first sample present
+      # print(thresholded_distances[j,])
+      thresholded_distances[j,3] = i_s1
+      # mark any unassigned instances of s2 as duplicates
+      # this covers a/b, a/c, b/a, b/c, c/a, c/b situations, where we would only
+      # want one cluster label
+      
+      for (k in seq_len(nrow(thresholded_distances))) {
+        k_s1 = thresholded_distances[k,1]
+        k_s2 = thresholded_distances[k,2]
+        k_cluster = thresholded_distances[k,3]
+        # print(paste(k_cluster))
+        if (k_cluster == 'unassigned') {
+          if (k_s1 == j_s2 | k_s2 == j_s2) {
+            # print(paste('i_s1', i_s1, 'j_s1', j_s1, 'j_s2', j_s2, 'k_s1', k_s1, 'k_s2', k_s2))
+            thresholded_distances[k,3] = j_s1
+          }
+        }
+      }
+    }
+  }
+}
+
+thresholded_distances
+```
+Now that we have all of these relationships labeled, some of them are duplicates -- i.e. C0108/C0110 vs C0110/C0108
+
+```{r}
+# doesn't quite work since it only works on the pairs issue
+for (i in seq_len(nrow(thresholded_distances))) {
+  s1 = thresholded_distances[i,1]
+  s2 = thresholded_distances[i,2]
+  # now check against new tibble to see if we've written reverse of it yet
+  for (j in seq_len(nrow(thresholded_distances))) {
+    if (is.na(thresholded_distances[i,1])) next
+    if (is.na(thresholded_distances[j,1])) next
+    if (s2 == thresholded_distances[j,1] & s1 == thresholded_distances[j,2]) {
+      thresholded_distances = thresholded_distances[-j,]
+    }
+  }
+}
+thresholded_distances
+```
+
+### joining data
+```{r}
+# joining off of s1 first
+s1_join = inner_join(thresholded_distances, geno_coords, by=join_by(s1==Tree)) %>% 
+  rename(s1_y = Y, s1_x = X)
+# joining off of s2 next
+pairs_genotypes_coords = inner_join(s1_join, geno_coords, by=join_by(s2==Tree)) %>% 
+  rename(s2_y = Y, s2_x = X)
+
+# checking genotypes
+pairs_genotypes_coords
+
+```
+Looking over the data, it looks like all of our observations have enough data for the comparisons to be believable genetically.. let's compare the distances now.
+
+```{r}
+pairs_coords = pairs_genotypes_coords %>%
+  select(
+    s1, s2, cluster_label, s1_y, s1_x, s2_y, s2_x
+  ) %>% 
+  #placeholder value
+  mutate(distance = 999)
+
+pairs_coords
+
+inner_join(pairs_coords, pedigree, by=join_by(s1==id))
+
+
+inner_join(pairs_coords, pedigree, by=join_by(s1==sire, s2==id))
+inner_join(pairs_coords, pedigree, by=join_by(s1==id, s2==sire))
+
+# are there offspring with the same 2 parents
+
+# rerun the analysis with only the one with the most data included and see what happens
+```
+
+### calculating distances
+```{r}
+?distm
+for (i in seq_len(nrow(pairs_coords))) {
+  x_s1 = pairs_coords$s1_x[i]
+  distance = distm(
+    x=c(pairs_coords$s1_x[i], pairs_coords$s1_y[i]),
+    y=c(pairs_coords$s2_x[i], pairs_coords$s2_y[i])
+    )
+  pairs_coords$distance[i] = distance
+}
+
+pairs_coords %>% group_by(cluster_label) %>% summarize(n())
+
+summary(pairs_coords)
+```
+
+PARE DUPLICATES DOWN TO ONE > rerun FRANz > 
+### plotting clone distances
+```{r}
+pairs_coords %>% 
+  ggplot(aes(x=distance)) +
+  geom_histogram(fill='thistle') +
+  theme_classic()
+```
+take each of the trees in the zero and search against the pedigree relationships first to see if its an offspring and then to see if its a parent -- this is to check to see if these are being duplicated
+
+### cluster distance averages
+
+```{r}
+pairs_coords %>% 
+  group_by(cluster_label) %>% 
+  summarize(cluster_avg = mean(distance))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# saving since this works to filter down to a group nearly
+
+# doesn't work right at all
+for (i in seq_len(nrow(thresholded_distances))) {
+  i_s1 = thresholded_distances[i,1]
+  i_s2 = thresholded_distances[i,2]
+  # now check against new tibble to see if we've written reverse of it yet
+  for (j in seq_len(nrow(thresholded_distances))) {
+    j_s1 = thresholded_distances[j,1]
+    j_s2 = thresholded_distances[j,2]
+    j_cluster = thresholded_distances[j,3]
+    if (i_s1 == j_s1 & j_cluster == 'unassigned') {
+      # initialize the cluster by naming it after the first sample present
+      thresholded_distances[j,3] = i_s1
+      # mark any unassigned instances of s2 as duplicates
+      # this avoids a/b, a/c, b/a, b/c, c/a, c/b situations, where we would only
+      # take a/b and a/c under the "a" cluster label
+      # however: note that we will still need to calculate distances between
+      # b and c down the road
+      
+      for (k in seq_len(nrow(thresholded_distances))) {
+        k_s1 = thresholded_distances[k,1]
+        k_s2 = thresholded_distances[k,2]
+        k_cluster = thresholded_distances[k,3]
+        if (k_cluster == 'unassigned') {
+          if (k_s1 == j_s2 | k_s2 == j_s2) {
+            thresholded_distances[j,3] = 'duplicate'
+          }
+        }
+      }
+    }
+  }
+}
+
+thresholded_distances %>% filter(cluster_label != 'duplicate')
+
+```
+
+
+
+This data shows some duplicated comparisons (i.e. C0110/C0108 vs C0108/C0110). Let's filter out these duplicates.
+```{r}
+# # doesn't work right at all
+# for (i in seq_len(nrow(thresholded_distances))) {
+#   s1 = thresholded_distances[i,1]
+#   s2 = thresholded_distances[i,2]
+#   # now check against new tibble to see if we've written reverse of it yet
+#   for (j in seq_len(nrow(thresholded_distances))) {
+#     if (is.na(thresholded_distances[i,1])) next
+#     if (is.na(thresholded_distances[j,1])) next
+#     if (s1 == thresholded_distances[j,1]) {
+#       thresholded_distances = thresholded_distances[-j,]
+#     }
+#   }
+# }
+# thresholded_distances
+```
+
+
+Let's try assigning a new group id
+```{r}
+# doesn't quite work since it only works on the pairs issue
+for (i in seq_len(nrow(thresholded_distances))) {
+  s1 = thresholded_distances[i,1]
+  s2 = thresholded_distances[i,2]
+  # now check against new tibble to see if we've written reverse of it yet
+  for (j in seq_len(nrow(thresholded_distances))) {
+    if (is.na(thresholded_distances[i,1])) next
+    if (is.na(thresholded_distances[j,1])) next
+    if (s2 == thresholded_distances[j,1] & s1 == thresholded_distances[j,2]) {
+      thresholded_distances = thresholded_distances[-j,]
+    }
+  }
+}
+thresholded_distances
+```
+
+
+```{r}
+thresholded_distances
+```
+
+
+Let's compare the findings from these potential clones to our data which is completely identical, including the NA data.
+```{r}
+# doing this twice to make it all-encompassing of the ids we need to consider
+forward_identical_genotypes <- genotypes %>% 
+  filter(duplicated(genotypes %>% arrange(Tree) %>% select(-Tree)))
+forward_identical_genotypes
+reverse_identical_genotypes <- genotypes %>% 
+  filter(duplicated(genotypes %>% arrange(desc(Tree)) %>% select(-Tree))) %>%
+  arrange(desc(Tree))
+reverse_identical_genotypes
+identical_genotypes <- bind_rows(forward_identical_genotypes, reverse_identical_genotypes) %>% unique() %>% 
+  arrange("yb01 Allele#1", "yb01 Allele#2", "yb05 Allele#1", "yb05 Allele#2", "yb15 Allele#1", "yb15 Allele#2", "yb21 Allele#1", "yb21 Allele#2", "yb04 Allele#1", "yb04 Allele#2", "yb06 Allele#1", "yb06 Allele#2", "yb12 Allele#1", "yb12 Allele#2", "yb13 Allele#1", "yb13 Allele#2", "fil36 Allele#1", "fil36 Allele#2", "yb08 Allele#1", "yb08 Allele#2", "yb20 Allele#1", "yb20 Allele#2", "yb22 Allele#1", "yb22 Allele#2")
+identical_genotypes
+names(genotypes %>% select(-Tree))
+```
+
+
+
+## Cutting purported clones out from the data
+We need to create a more concise list of all the clones, so that they can be filtered out of the data. We can do that using our thresholded_distances data.
+```{r}
+thresholded_distances
+
+purported_clones = thresholded_distances %>%
+  gather(key, value, -cluster_label) %>%
+  select(-key) %>% 
+  unique()
+
+purported_clones %>% gather() %>% unique()
+```
+
+Now we have to make an NA version to make it easier to filter out amount of data
+```{r}
+na_geno_coords = geno_coords
+na_geno_coords[na_geno_coords == 0] <- NA
+```
+
+
+Now we can make a vector containing the ids which we will remove data from in the geno_coords data set (those which have the least data):
+```{r}
+less_data = c()
+
+for (label in unique(purported_clones$cluster_label)) {
+  clones_ds = purported_clones %>% filter(cluster_label == label)
+  print(paste(length(clones_ds$value), 'in cluster', label))
+  # print(clones_ds)
+  # using na_geno_coords for ease in comparing the amount of data down the road
+  geno_coords_ds = inner_join(na_geno_coords, clones_ds, by=c('Tree' = 'value'))
+  # print(geno_coords_ds)
+  # print(geno_coords_ds)
+  # compare all of the cluster against each other
+  for (i in 1:length(geno_coords_ds$Tree)) {
+    for (j in 1:length(geno_coords_ds$Tree)) {
+      if (i == j) next # skip if comparing self
+      # need to skip if they've already been compared otherwise we will add all
+      # of the data to be ignored if any data is equal
+      if (geno_coords_ds[[i, 1]] %in% less_data) next
+      if (geno_coords_ds[[j, 1]] %in% less_data) next
+      
+      print(paste('i is', i, 'j is', j))
+      # print(i)
+      # print(geno_coords_ds[i, 1:ncol(geno_coords_ds)])
+      # print(paste('na_geno_coords[[i, 1]] is', na_geno_coords[[i, 1]]), sep=' ')
+      
+      i_num_typed = nrow(gather(geno_coords_ds[i, 2:ncol(geno_coords_ds)], na.rm=T))
+      j_num_typed = nrow(gather(geno_coords_ds[j, 2:ncol(geno_coords_ds)], na.rm=T))
+      
+      # if i and j are equal, we keep the one from i
+      if (i_num_typed < j_num_typed) {
+        less_data = append(less_data, geno_coords_ds[[i, 1]])
+      } else {
+        less_data = append(less_data, geno_coords_ds[[j, 1]])
+      }
+    }
+  }
+}
+less_data
+less_data %>% length()
+# genotypes
+```
+Now to actually filter this out:
+```{r}
+geno_coords = geno_coords %>% 
+  filter(!(Tree %in% less_data))
+geno_coords
+```
+
+
+
+```{r}
+#genotypes = genotypes %>% 
+#  filter(!(Tree %in% purported_clones$value))
+#genotypes
+```
+
+
+
+```{r}
+
+```
+

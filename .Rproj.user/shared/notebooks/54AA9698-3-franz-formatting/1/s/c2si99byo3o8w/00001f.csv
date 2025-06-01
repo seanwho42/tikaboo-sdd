@@ -1,5 +1,0 @@
-"0","# just going to remove the clones to make it simpler"
-"0","franz_cloneless <- franz_genotypes_slashes %>%"
-"0","  filter(!duplicated(franz_genotypes_slashes %>% select(-Tree)))"
-"0",""
-"0","franz_cloneless %>% head()"

@@ -4,27 +4,66 @@
 library(tidyverse)
 library(ggmap)
 library(janitor)
+library(FSA)
+# TODO: update this if there is a better model to match colors off of
+species_palette <- (c('forestgreen', 'gold', '#6496c8'))
 ```
 ## Visualizing the joined data
 ### maps
 Let's make a map for the joined data.
 ```{r}
-ggmap(map_area) +
+for (bool in unique(structure_pedigree$potential_clones_filtered)) {
+  print(ggmap(map_area) +
   # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
-  geom_segment(structure_pedigree,
+  geom_segment((structure_pedigree %>% filter(potential_clones_filtered == bool)),
                mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=off_percent_brev),
                arrow = arrow(
                  length = unit(0.01, "npc"),
                  type = "closed",
                  angle = 20),
                size=0.2) +
-  labs(color='Offspring % brevifolia')
+  labs(color='Offspring % brevifolia') +
+  facet_grid(~potential_clones_filtered) +
+  theme_classic())
+}
+
 
 ?labs
 ```
 The arrows point from the parent to the offspring, with darker colors signifying the offspring genetically is more like *Y. jaegeriana* while light blue signifies *Y. brevifolia*.
 
-With this map, we clearly see an outlier spanning nearly the entire length of our range of sample collection. We will be analyzing our results with and without this outlier.
+And now let's look at only long distance dispersal events
+```{r}
+for (bool in unique(structure_pedigree$potential_clones_filtered)) {
+  print(ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_segment((structure_pedigree %>% filter(potential_clones_filtered == bool, distance > 2000)),
+               mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=off_percent_brev),
+               arrow = arrow(
+                 length = unit(0.01, "npc"),
+                 type = "closed",
+                 angle = 20),
+               size=0.2) +
+  labs(color='Offspring % brevifolia') +
+  theme_classic())
+}
+
+ggmap(map_area) +
+  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
+  geom_segment((structure_pedigree %>% filter(distance > 1000)),
+               mapping=aes(x=parent_x, y=parent_y, xend=offspring_x, yend=offspring_y, color=off_percent_brev),
+               arrow = arrow(
+                 length = unit(0.01, "npc"),
+                 type = "closed",
+                 angle = 20),
+               size=0.2) +
+  labs(color='Offspring % brevifolia') +
+  facet_grid(~potential_clones_filtered) +
+  theme_classic()
+
+
+?labs
+```
 
 Looking at this data, it seems more paternal relationships were inferred for *Y. brevifolia* than *Y. jaegeriana*. Let's explore that further.
 
@@ -33,7 +72,8 @@ Lets take a look at the dispersal distance compared to % brev.
 structure_pedigree %>%
   ggplot(aes(x=off_percent_brev, y=distance)) +
   geom_point() +
-  theme_classic()
+  theme_classic() +
+  facet_wrap(~potential_clones_filtered, nrow=2)
 ```
 We have a wide range of brevifolia, jaegeriana, and hybrids represented in our data. We will be analyzing this categorically via thresholding our data.
 
@@ -42,57 +82,89 @@ For purposes of our thresholds, we will be arbitrarily identifying any offspring
 ```{r}
 species_sdd <- structure_pedigree %>% 
   mutate(
-    species = as.factor(case_when(
-      off_percent_brev < 0.25 ~ 'y. Jaegeriana',
-      off_percent_brev > 0.75 ~ 'y. Brevifolia',
-      .default = 'hybrid'
-    ))
+    species = factor(case_when(
+      percent_brev_ave < 0.25 ~ 'y. Jaegeriana',
+      percent_brev_ave > 0.75 ~ 'y. Brevifolia',
+      .default = 'Hybrid'
+    ), levels = c('y. Jaegeriana', 'Hybrid', 'y. Brevifolia'))
   )
 
 summary(species_sdd$species)
 
-species_sdd %>% 
-  group_by(species) %>% 
-  summarize(mean=mean(distance), sd=sd(distance))
-```
 
+
+# summary stats by species
+species_sdd %>% 
+  group_by(potential_clones_filtered, species) %>% 
+  summarize(mean=mean(distance), sd=sd(distance), median=median(distance), n=n())
+
+species_sdd %>% summary()
+```
+Let's look at some histograms for our data here
+```{r}
+species_sdd %>% ggplot(aes(x=distance, fill=species))+
+  geom_histogram() +
+  facet_grid(cols=vars(species), rows=vars(potential_clones_filtered)) +
+  theme_classic() +
+  scale_fill_discrete(type=species_palette)
+?scale_color_discrete
+```
+These aren't normally distributed, and the sample sizes aren't large enough to satisfy the central limit theorem. So, the anova test below may not have enough statistical power to properly determine significance.
 
 ```{r}
-aov_species_sdd = aov(distance ~ species, data=species_sdd)
+# potential clones not filtered
+aov_species_sdd_unf = aov(distance ~ species, data=species_sdd %>% filter(!potential_clones_filtered))
+summary(aov_species_sdd_unf)
+TukeyHSD(aov_species_sdd_unf)
+
+
+# potential clones filtered
+aov_species_sdd_pcf = aov(distance ~ species, data=species_sdd %>% filter(potential_clones_filtered))
+summary(aov_species_sdd_pcf)
+TukeyHSD(aov_species_sdd_pcf)
 
 summary(aov_species_sdd)
-TukeyHSD(aov_species_sdd)
 ```
 [TODO: update this when I have the rest of the data for the analysis]
 
 
-
-
-and then look at it without the outlier
+Instead, we need to use a nonparametric test, the Kruskal-Wallis test, and the Dunn test for post-hoc analysis.
 ```{r}
-structure_pedigree_no_outlier = structure_pedigree %>% 
-  filter(distance < 10000)
-
-structure_pedigree_no_outlier %>%
-  ggplot(aes(x=off_percent_brev, y=distance)) +
-  geom_point() +
-  theme_classic()
+kruskal.test(distance ~ species, data=species_sdd %>% filter(potential_clones_filtered))
+dunnTest(distance ~ species,
+         data=species_sdd %>% filter(potential_clones_filtered),
+         method='holm')
 ```
+A Kruskal-Wallis test was performed across the species (Chi square = 7.624, p < 0.05, df = 2).
+There is a statistically significant difference in dispersal difference between y. Brevifolia and y. Jaegeriana (p < 0.05), but not between y. Brevifolia and hybrids (p = 0.39) or between y. Jaegeriana and hybrids (p = 0.36).
+
+Let's see how this holds up for the data with potential clones filtered out.
+
+```{r}
+kruskal.test(distance ~ species, data=species_sdd %>% filter(!potential_clones_filtered))
+dunnTest(distance ~ species,
+         data=species_sdd %>% filter(!potential_clones_filtered),
+         method='holm')
+```
+This pattern is conserved for the data set filtered for potential clones as well. There is a statistically significant difference in dispersal difference between y. Brevifolia and y. Jaegeriana (p < 0.01), but not between y. Brevifolia and hybrids (p = 0.26) or between y. Jaegeriana and hybrids (p = 0.42).
 
 
 
 
 
 ```{r}
-trees_distances %>%
-  ggplot(aes(x = distance,y=after_stat(density))) +
-  geom_histogram(fill="thistle2", binwidth=200) +
-  geom_density(color = "red") +
+species_sdd %>%
+  group_by(potential_clones_filtered, selfed) %>% 
+  summarize(n())
+
+species_sdd %>% 
+  filter(selfed) %>% 
+  ggplot(aes(x = distance)) +
+  geom_histogram(fill="thistle2") +
   theme_classic() +
-  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')+
-  facet_wrap(~)
+  labs(x='Distance (m)', y='Count') +
+  facet_wrap(~potential_clones_filtered)
 ```
-No dice on this type.. will have to keep looking
 
 
 ```{r}

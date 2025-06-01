@@ -1,8 +1,0 @@
-"0","# filter out the super big ones for clarity in visualization"
-"0","trees_distances %>%"
-"0","  filter(distance < 500, distance != 0) %>%"
-"0","  ggplot(aes(x = distance,y=after_stat(density))) +"
-"0","  geom_histogram(fill=""thistle2"", binwidth=20) +"
-"0","  geom_density(color = ""red"") +"
-"0","  theme_classic() +"
-"0","  labs(x='Distance (m)', y='Density', title='Distribution of estimated dispersal distance')"

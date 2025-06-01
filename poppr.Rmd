@@ -1,0 +1,41 @@
+# poppr
+
+## setup
+setting up required libraries
+```{r}
+library(tidyverse)
+library(janitor)
+library(readxl)
+library(ggmap)
+library(poppr)
+```
+
+##
+```{r}
+poppr_genotypes
+```
+
+Now we have to check the genotype accumulation cruve to check how much power we have to discriminate between individuals
+```{r}
+genotype_curve(poppr_genotypes, sample = 1000, quiet = TRUE)
+```
+We can get some summary information about the loci
+```{r}
+# note that we have cut yb05 and yb20
+locus_table(poppr_genotypes)
+```
+
+And we can find percent missing for each locus here
+```{r}
+info_table(poppr_genotypes, type = "missing")
+```
+
+
+
+```{r}
+?clonecorrect
+clonecorrect(poppr_genotypes)
+```
+
+
+

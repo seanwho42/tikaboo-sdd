@@ -1,4 +1,0 @@
-"0","# gathering just to increase readability"
-"0","read_tsv('data-files/hwe-gdv-trees.gdv') %>% select(-`Obs.`) %>% gather()"
-"2","Error: 'data-files/hwe-gdv-trees.gdv' does not exist in current working directory ('/Users/seanbergan/Documents/tikaboo-sdd').
-"

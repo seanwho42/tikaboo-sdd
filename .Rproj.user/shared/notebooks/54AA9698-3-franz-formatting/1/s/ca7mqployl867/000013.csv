@@ -1,8 +1,0 @@
-"0","for (col in colnames(franz_genotypes_slashes)) {"
-"0","  if (col != 'Tree') {"
-"0","    # regex for 0/"
-"0","    franz_genotypes_slashes[[col]] = gsub(""^0\\/"", ""?/"", franz_genotypes_slashes[[col]])"
-"0","    # regex for /0"
-"0","    franz_genotypes_slashes[[col]] = gsub(""\\/0$"", ""/?"", franz_genotypes_slashes[[col]])"
-"0","  }"
-"0","}"

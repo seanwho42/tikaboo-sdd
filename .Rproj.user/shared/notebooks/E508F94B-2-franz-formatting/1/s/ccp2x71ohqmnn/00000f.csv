@@ -1,6 +1,0 @@
-"0",""
-"0","franz_genotypes <- genotypes %>%"
-"0","  select(-`Sample id`) %>%"
-"0","  mutate(Tree = paste(""    "", Tree, "" 1 ? ? ?"", sep = """")) "
-"0","  # adding 4 spaces to meet 10 length requirement for input file"
-"0","  # then adding the columns that aren't relevant"

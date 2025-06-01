@@ -1,9 +1,0 @@
-"0","ggmap(map_area) +
-  # geom_point(geno_coords, mapping=aes(X, Y), size = 0.5) +
-  geom_point(grouped_geno_coords,
-             mapping=aes(x=X, y=Y, color=id_group),
-             size=1)
-"
-"2","Warning:"
-"2"," [38;5;251mRemoved 6 rows containing missing values (`geom_point()`).[39m
-"

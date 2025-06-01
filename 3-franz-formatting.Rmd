@@ -9,13 +9,29 @@ library(ggmap)
 library(janitor)
 ```
 
+## Removing clones from our data
+Before we get started on our formatting, FRANz won't work properly with clones in our data, so let's get rid of these.
+
+First we can check for clones by looking for instances where all of the data is identical (apart from the tree id)
+```{r}
+franz_genotypes_slashes %>%
+  # filtering for cloned results only, regardless of the Tree ID
+  filter(duplicated(franz_genotypes_slashes%>%select(-Tree))) %>%
+  # arranging by a couple of the alleles so that the clones show up together regardless of their tree IDs
+  arrange(yb01,yb15,yb21,yb04,Tree)
+
+genotypes %>% arrange(`yb05 Allele#1`, `yb05 Allele#2`, `yb15 Allele#1`, `yb15 Allele#2`, `yb21 Allele#1`, `yb21 Allele#1`)
+```
+
+
 ## Reformatting labels + additional information
 We need to provide some more information for FRANz in order for the software to process our data. This includes making our tree IDs all 10 characters long.
 
 read in the data and added some more information required for FRANz runs to each of the runs.
 [TODO: explain each column/?]
 ```{r}
-franz_genotypes <- genotypes %>%
+# using geno_coords because we only care about trees which we have coordinates for.
+franz_genotypes <- geno_coords %>%
   mutate(Tree = paste(str_pad(Tree, width=10, side='left'), " 1 ? ? ?", sep = ""))
   # str_pad adds spaces on the left to meet 10 length requirement for input file
   # then adding the columns necessary (most of which aren't relevant)
@@ -78,7 +94,7 @@ This shows all non-original rows, ignoring the tree ID. This means that there is
 ```
 
 
-Now, lets actually remove these clones.
+Now, lets actually remove these clones. We're doing this pseudorandomly.
 ```{r}
 # just going to remove the clones to make it simpler
 franz_cloneless <- franz_genotypes_slashes %>%
@@ -86,8 +102,9 @@ franz_cloneless <- franz_genotypes_slashes %>%
 
 franz_cloneless %>% head()
 franz_cloneless %>% dim()
-# now making rough franz input file for this
 ```
+
+
 
 Now we can create the rough text file which will be used for franz. This needs some further manual formatting.
 ```{r}
@@ -102,7 +119,7 @@ Here are changes that were made because of errors running FRANz:
 This following header was added into the renamed franz_cloneless.dat:
 ```{}
 1 10 / cloneless
-1519 tikaboo
+1489 tikaboo
 ```
 This signifies:
 ```{}
@@ -117,13 +134,24 @@ Additionally, the file was renamed to "franz_cloneless.dat"
 Here is the command used to run the analysis in FRANz:
 ```{}
 Franz was run with the following command within the folder franz-files:
-FRANz --Nmax 60000 --selfing --poutformat 2 --pedigreeoutformat 1,2,3 --hwetestout hwe-out --mhburnin 50000000 --mhsamplefreq 1000 --mhiter 100000000000 --samaxiter 10000000000 --mintyped 6 franz_cloneless.dat
+FRANz --Nmax 60000 --selfing --poutformat 2 --pedigreeoutformat 1,2,3 --hwetestout hwe-out --mhsamplefreq 1000 --mhburnin 50000000 --mhiter 100000000000 --samaxiter 10000000000 --mintyped 6 franz_cloneless.dat
+
 ```
 
---Nmax 10000 estimates that the maximum number of potential parents is 10000
+--Nmax 60000 estimates that the maximum number of potential parents is 10000
 --selfing allows for instances of selfing to be considered for parentage
 --poutformat 2 means that all LOD scores will be included in parentage.csv
+--hwetestout generates a HWE test with our results
 --pedigreeoutformat 1,2,3 means we generate a graphic visualization, a FRANz .dat format, and a .txt format (which we will use for further analysis)
+--mhsamplefreq makes the sampling for log files less frequent so the generated files aren't massive
+--mhburnin 50000000 designates 50000000 iterations for metropolis-hastings MCMC burnin
+--mhiter 100000000000 designates 100000000000 iterations for metropolis-hastings MCMC
+--samaxiter 10000000000 designates 10000000000 maximum iterations for simulated annealing
+--mintyped 6 specifies 6 minimum typed loci (this is the default value, but there was some trial and error here)
+franz_cloneless.dat is our input file
+
+
+
 
 
 

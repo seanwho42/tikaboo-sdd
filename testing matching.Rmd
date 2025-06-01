@@ -1,0 +1,39 @@
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+# Example dataset
+df <- tibble(
+  sample_id = c("A1", "A2", "A3", "A4", "A5", "A6", "A7"),
+  locus1 = c(1, NA, 1, 1, 1, NA, 2),
+  locus2 = c(1, 1, 1, 1, NA, 1, 2),
+  locus3 = c(1, 1, 1, NA, 1, 1, 2),
+  locus4 = c(NA, 2, 1, 1, 1, 1, 2)
+)
+```
+
+
+```{r}
+# Function to generate a unique key for grouping (ignoring NAs)
+generate_clone_key <- function(row) {
+  paste(ifelse(is.na(row), "X", row), collapse = "_")  # Replace NAs with a placeholder
+}
+```
+
+
+```{r}
+# Create clone keys (ignoring NAs) and group samples correctly
+df_clone_groups <- df %>%
+  rowwise() %>%
+  mutate(clone_key = generate_clone_key(c_across(starts_with("locus")))) %>%
+  ungroup() %>%
+  group_by(clone_key) %>%
+  slice(1) %>%  # Keep one representative per clone
+  ungroup()
+
+# View the result
+print(df_clone_groups)
+```
+

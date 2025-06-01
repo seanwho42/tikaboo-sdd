@@ -1,4 +1,0 @@
-"0","franz_genotypes <- genotypes %>%"
-"0","  mutate(Tree = paste(str_pad(Tree, width=10, side='left'), "" 1 ? ? ?"", sep = """"))"
-"0","  # str_pad adds spaces on the left to meet 10 length requirement for input file"
-"0","  # then adding the columns necessary (most of which aren't relevant)"
